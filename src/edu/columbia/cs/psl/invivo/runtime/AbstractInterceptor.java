@@ -174,6 +174,7 @@ public abstract class AbstractInterceptor {
 			public void run() {
 				try {
 					Object clone = cloner.deepClone(inv.parent.callee);
+					System.out.println(inv.parent);
 					inv.params[inv.parent.params.length] = clone;
 					setAsChild(clone);
 					inv.returnValue = inv.method.invoke(null, inv.params);

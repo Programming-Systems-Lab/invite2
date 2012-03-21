@@ -26,7 +26,7 @@ public class InterceptingMethodVisitor extends AdviceAdapter {
 		this.argumentTypes = Type.getArgumentTypes(desc);
 	}
 	boolean rewrite = false;
-	
+
 	@Override
 	public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
 		if(desc.equals(InvivoPreMain.config.getAnnotationDescriptor()))
