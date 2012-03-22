@@ -5,6 +5,8 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.WeakHashMap;
 
+import javax.lang.model.element.Modifier;
+
 import com.rits.cloning.Cloner;
 
 import edu.columbia.cs.psl.invivo.struct.MethodInvocation;
@@ -29,7 +31,7 @@ public abstract class AbstractInterceptor {
 		try {
 			obj.getClass().getField(InvivoPreMain.config.getChildField()).setInt(obj, childId);
 		} catch (Exception e) {
-			throw new IllegalArgumentException("The object requested was not intercepted and annotated");
+			throw new IllegalArgumentException("The object requested was not intercepted and annotated",e);
 		} 
 	}
 	protected boolean isChild(Object callee)
@@ -163,7 +165,7 @@ public abstract class AbstractInterceptor {
 						childId++;
 					}
 					setAsChild(inv.callee,id);
-					inv.returnValue = inv.method.invoke(null, inv.params);
+					inv.returnValue = inv.method.invoke(inv.callee, inv.params);
 				} catch (SecurityException e) {
 					e.printStackTrace();
 				} catch (IllegalArgumentException e) {
