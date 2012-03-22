@@ -52,9 +52,9 @@ public class InterceptingClassVisitor extends ClassVisitor {
 			
 			FieldNode fn2 = new FieldNode(Opcodes.ASM4, Opcodes.ACC_PUBLIC,
 					InvivoPreMain.config.getChildField(),
-					Type.BOOLEAN_TYPE.getDescriptor(), null, false); //TODO: abstract the interceptor type
+					Type.INT_TYPE.getDescriptor(), null, 0); //TODO: abstract the interceptor type
 			fn2.accept(cv);
-			logger.info("Actually rewrote" + className);
+			logger.info("Actually rewrote class: " + className);
 		}
 	}
 

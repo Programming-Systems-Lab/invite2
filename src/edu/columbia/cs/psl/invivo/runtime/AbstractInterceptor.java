@@ -3,6 +3,7 @@ package edu.columbia.cs.psl.invivo.runtime;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.WeakHashMap;
 
 import com.rits.cloning.Cloner;
 
@@ -22,65 +23,37 @@ public abstract class AbstractInterceptor {
 	public abstract int onEnter(Object callee, Method method, Object[] params);
 	
 	public abstract void onExit(Object val, int op, int id);
-	
-	protected void setChild(Object obj, boolean val)
+
+	protected void setAsChild(Object obj, int childId)
 	{
 		try {
-			obj.getClass().getField(InvivoPreMain.config.getChildField()).setBoolean(obj, val);
-		} catch (IllegalArgumentException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (SecurityException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IllegalAccessException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (NoSuchFieldException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-	}
-	
-	protected void setAsChild(Object obj)
-	{
-		try {
-			obj.getClass().getField(InvivoPreMain.config.getChildField()).setBoolean(obj, true);
-		} catch (IllegalArgumentException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (SecurityException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IllegalAccessException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (NoSuchFieldException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+			obj.getClass().getField(InvivoPreMain.config.getChildField()).setInt(obj, childId);
+		} catch (Exception e) {
+			throw new IllegalArgumentException("The object requested was not intercepted and annotated");
+		} 
 	}
 	protected boolean isChild(Object callee)
 	{
 		if(callee == null || callee.getClass().equals(Class.class))
 			return false;
 		try {
-			return callee.getClass().getField(InvivoPreMain.config.getChildField()).getBoolean(callee);
-		} catch (IllegalArgumentException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (SecurityException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IllegalAccessException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (NoSuchFieldException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			return callee.getClass().getField(InvivoPreMain.config.getChildField()).getInt(callee) > 0;
+		} catch (Exception e) {
+			throw new IllegalArgumentException("The object requested was not intercepted and annotated");
 		}
-		return false;
 	}
+	
+	protected int getChildId(Object callee)
+	{
+		if(callee == null || callee.getClass().equals(Class.class))
+			throw new IllegalArgumentException("The object requested was not intercepted and annotated");
+		try {
+			return callee.getClass().getField(InvivoPreMain.config.getChildField()).getInt(callee);
+		} catch (Exception e) {
+			throw new IllegalArgumentException("The object requested was not intercepted and annotated");
+		}
+	}
+	
 	public final int __onEnter(String methodName, String[] types, Object[] params, Object callee)
 	{
 		return onEnter(callee, getCurMethod(methodName,types), params);
@@ -166,17 +139,22 @@ public abstract class AbstractInterceptor {
 		return getMethod(methodName,types,interceptedObject.getClass());
 	}
 	protected Cloner cloner = new Cloner();
+	private Integer childId = 1;
+	
 	protected Thread createChildThread(final MethodInvocation inv)
 	{
-		return new Thread(new Runnable() {
-			
+		return new Thread(new Runnable() {		
 			@Override
 			public void run() {
 				try {
-					Object clone = cloner.deepClone(inv.parent.callee);
-					System.out.println(inv.parent);
-					inv.params[inv.parent.params.length] = clone;
-					setAsChild(clone);
+					inv.callee = cloner.deepClone(inv.parent.callee);
+					inv.params[inv.parent.params.length] = inv.callee;
+					int id;
+					synchronized (childId) {
+						id = childId;
+						childId++;
+					}
+					setAsChild(inv.callee,id);
 					inv.returnValue = inv.method.invoke(null, inv.params);
 				} catch (SecurityException e) {
 					e.printStackTrace();

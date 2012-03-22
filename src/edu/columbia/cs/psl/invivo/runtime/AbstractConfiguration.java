@@ -8,7 +8,7 @@ public abstract class AbstractConfiguration {
 	
 	public String getChildField()
 	{
-		return "__metamorphicIsChild";
+		return "__metamorphicChildCount";
 	}
 	
 	public abstract Class<? extends AbstractInterceptor> getInterceptorClass();
