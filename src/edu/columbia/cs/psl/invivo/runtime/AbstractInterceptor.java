@@ -176,8 +176,6 @@ public abstract class AbstractInterceptor {
 						id = childId;
 						childId++;
 					}
-					inv.callee = cloner.deepClone(inv.parent.callee);
-					inv.params[inv.parent.params.length] = inv.callee;
 					setAsChild(inv.callee,id);
 					inv.returnValue = inv.method.invoke(inv.callee, inv.params);
 				} catch (SecurityException e) {
