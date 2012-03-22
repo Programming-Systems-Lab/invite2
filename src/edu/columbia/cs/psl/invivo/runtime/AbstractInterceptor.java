@@ -29,7 +29,7 @@ public abstract class AbstractInterceptor {
 		try {
 			obj.getClass().getField(InvivoPreMain.config.getChildField()).setInt(obj, childId);
 		} catch (Exception e) {
-			throw new IllegalArgumentException("The object requested was not intercepted and annotated");
+			throw new IllegalArgumentException("The object requested was not intercepted and annotated, or is null (don't use this for a static call!)");
 		} 
 	}
 	protected boolean isChild(Object callee)
@@ -39,7 +39,7 @@ public abstract class AbstractInterceptor {
 		try {
 			return callee.getClass().getField(InvivoPreMain.config.getChildField()).getInt(callee) > 0;
 		} catch (Exception e) {
-			throw new IllegalArgumentException("The object requested was not intercepted and annotated");
+			throw new IllegalArgumentException("The object requested was not intercepted and annotated  (don't use this for a static call!)");
 		}
 	}
 	public static int getThreadChildId()
@@ -53,11 +53,11 @@ public abstract class AbstractInterceptor {
 	protected int getChildId(Object callee)
 	{
 		if(callee == null || callee.getClass().equals(Class.class))
-			throw new IllegalArgumentException("The object requested was not intercepted and annotated");
+			throw new IllegalArgumentException("The object requested was not intercepted and annotated (don't use this for a static call!)");
 		try {
 			return callee.getClass().getField(InvivoPreMain.config.getChildField()).getInt(callee);
 		} catch (Exception e) {
-			throw new IllegalArgumentException("The object requested was not intercepted and annotated");
+			throw new IllegalArgumentException("The object requested was not intercepted and annotated (don't use this for a static call!)");
 		}
 	}
 	
