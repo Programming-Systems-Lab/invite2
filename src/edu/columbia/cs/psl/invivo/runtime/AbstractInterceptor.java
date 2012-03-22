@@ -42,7 +42,14 @@ public abstract class AbstractInterceptor {
 			throw new IllegalArgumentException("The object requested was not intercepted and annotated");
 		}
 	}
-	
+	public static int getThreadChildId()
+	{
+		if(Thread.currentThread().getName().startsWith(InvivoPreMain.config.getThreadPrefix()))
+		{
+			return Integer.parseInt(Thread.currentThread().getName().replace(InvivoPreMain.config.getThreadPrefix(), ""));
+		}
+		throw new IllegalStateException("Not in a child thread");
+	}
 	protected int getChildId(Object callee)
 	{
 		if(callee == null || callee.getClass().equals(Class.class))
@@ -143,17 +150,17 @@ public abstract class AbstractInterceptor {
 	
 	protected Thread createChildThread(final MethodInvocation inv)
 	{
+		final int id;
+		synchronized (childId) {
+			id = childId;
+			childId++;
+		}
 		return new Thread(new Runnable() {		
 			@Override
 			public void run() {
 				try {
 					inv.callee = cloner.deepClone(inv.parent.callee);
 					inv.params[inv.parent.params.length] = inv.callee;
-					int id;
-					synchronized (childId) {
-						id = childId;
-						childId++;
-					}
 					setAsChild(inv.callee,id);
 					inv.returnValue = inv.method.invoke(null, inv.params);
 				} catch (SecurityException e) {
@@ -166,6 +173,6 @@ public abstract class AbstractInterceptor {
 					e.printStackTrace();
 				}
 			}
-		});
+		},InvivoPreMain.config.getThreadPrefix()+id);
 	}
 }
