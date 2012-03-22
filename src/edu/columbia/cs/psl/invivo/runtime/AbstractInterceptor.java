@@ -138,17 +138,25 @@ public abstract class AbstractInterceptor {
 	{
 		return getMethod(methodName,types,interceptedObject.getClass());
 	}
-	protected Cloner cloner = new Cloner();
+	private Cloner cloner = new Cloner();
 	private Integer childId = 1;
-	
+
+	/**
+	 * Deep clone an object. Currently just delegates out but we may need to do more here manually,
+	 * hence use this abstraction please.
+	 * @param obj
+	 * @return
+	 */
+	protected <T> T deepClone(T obj)
+	{
+		return cloner.deepClone(obj);
+	}
 	protected Thread createChildThread(final MethodInvocation inv)
 	{
 		return new Thread(new Runnable() {		
 			@Override
 			public void run() {
 				try {
-					inv.callee = cloner.deepClone(inv.parent.callee);
-					inv.params[inv.parent.params.length] = inv.callee;
 					int id;
 					synchronized (childId) {
 						id = childId;
