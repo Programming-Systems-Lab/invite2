@@ -5,7 +5,10 @@ import java.lang.annotation.Annotation;
 import org.objectweb.asm.Type;
 
 public abstract class AbstractConfiguration {
-	
+	public String getThreadPrefix()
+	{
+		return "__invivoChild_";
+	}
 	public String getChildField()
 	{
 		return "__metamorphicChildCount";

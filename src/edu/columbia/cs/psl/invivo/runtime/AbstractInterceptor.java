@@ -31,7 +31,7 @@ public abstract class AbstractInterceptor {
 		try {
 			obj.getClass().getField(InvivoPreMain.config.getChildField()).setInt(obj, childId);
 		} catch (Exception e) {
-			throw new IllegalArgumentException("The object requested was not intercepted and annotated",e);
+			throw new IllegalArgumentException("The object requested was not intercepted and annotated (don't use this for a static call!)",e);
 		} 
 	}
 	protected boolean isChild(Object callee)
@@ -41,18 +41,25 @@ public abstract class AbstractInterceptor {
 		try {
 			return callee.getClass().getField(InvivoPreMain.config.getChildField()).getInt(callee) > 0;
 		} catch (Exception e) {
-			throw new IllegalArgumentException("The object requested was not intercepted and annotated");
+			throw new IllegalArgumentException("The object requested was not intercepted and annotated  (don't use this for a static call!)",e);
 		}
 	}
-	
+	public static int getThreadChildId()
+	{
+		if(Thread.currentThread().getName().startsWith(InvivoPreMain.config.getThreadPrefix()))
+		{
+			return Integer.parseInt(Thread.currentThread().getName().replace(InvivoPreMain.config.getThreadPrefix(), ""));
+		}
+		throw new IllegalStateException("Not in a child thread");
+	}
 	protected int getChildId(Object callee)
 	{
 		if(callee == null || callee.getClass().equals(Class.class))
-			throw new IllegalArgumentException("The object requested was not intercepted and annotated");
+			throw new IllegalArgumentException("The object requested was not intercepted and annotated (don't use this for a static call!)");
 		try {
 			return callee.getClass().getField(InvivoPreMain.config.getChildField()).getInt(callee);
 		} catch (Exception e) {
-			throw new IllegalArgumentException("The object requested was not intercepted and annotated");
+			throw new IllegalArgumentException("The object requested was not intercepted and annotated (don't use this for a static call!)",e);
 		}
 	}
 	
@@ -155,6 +162,11 @@ public abstract class AbstractInterceptor {
 	}
 	protected Thread createChildThread(final MethodInvocation inv)
 	{
+		final int id;
+		synchronized (childId) {
+			id = childId;
+			childId++;
+		}
 		return new Thread(new Runnable() {		
 			@Override
 			public void run() {
@@ -164,6 +176,8 @@ public abstract class AbstractInterceptor {
 						id = childId;
 						childId++;
 					}
+					inv.callee = cloner.deepClone(inv.parent.callee);
+					inv.params[inv.parent.params.length] = inv.callee;
 					setAsChild(inv.callee,id);
 					inv.returnValue = inv.method.invoke(inv.callee, inv.params);
 				} catch (SecurityException e) {
@@ -176,6 +190,6 @@ public abstract class AbstractInterceptor {
 					e.printStackTrace();
 				}
 			}
-		});
+		},InvivoPreMain.config.getThreadPrefix()+id);
 	}
 }
