@@ -9,6 +9,7 @@ import org.objectweb.asm.commons.AdviceAdapter;
 import org.objectweb.asm.commons.Method;
 
 import edu.columbia.cs.psl.invivo.runtime.InvivoPreMain;
+import edu.columbia.cs.psl.invivo.runtime.StaticWrapper;
 
 
 public class InterceptingMethodVisitor extends AdviceAdapter {
@@ -36,6 +37,39 @@ public class InterceptingMethodVisitor extends AdviceAdapter {
 		}
 		return super.visitAnnotation(desc, visible);
 	}
+	
+	@Override
+	public void visitFieldInsn(int opcode, String owner, String name,
+			String desc) {
+		if(!rewrite || owner.startsWith("java") || owner.startsWith("sun"))
+		{
+			super.visitFieldInsn(opcode, owner, name, desc);
+			return;
+		}
+		if (opcode == GETSTATIC) {
+			System.out.println("Get static to " + owner +"."+name+"-"+desc);
+			visitLdcInsn(owner);
+			visitLdcInsn(name);
+			visitLdcInsn(desc);
+			visitMethodInsn(INVOKESTATIC, "edu/columbia/cs/psl/invivo/runtime/StaticWrapper", "getValue",
+					"(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;");
+			if(Type.getType(desc).getSort() != Type.OBJECT)
+				unbox(Type.getType(desc));
+		} else if (opcode == PUTSTATIC) {
+			System.out.println("Put static");
+			//here should be the value we want to set to
+			if(Type.getType(desc).getSort() != Type.OBJECT)
+				box(Type.getType(desc));
+			visitLdcInsn(owner);
+			visitLdcInsn(name);
+			visitLdcInsn(desc);
+			visitMethodInsn(INVOKESTATIC, "edu/columbia/cs/psl/invivo/runtime/StaticWrapper", "setValue",
+					"(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V");
+		}
+		// else do the standard dynamic lookup
+		else super.visitFieldInsn(opcode, owner, name, desc);
+	}
+	
 	private void onStaticMethodEnter()
 	{
 		Label the_method = new Label();
