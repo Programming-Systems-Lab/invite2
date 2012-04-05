@@ -1,12 +1,12 @@
 package edu.columbia.cs.psl.invivo.runtime;
 
 import java.util.HashMap;
-
+import edu.columbia.cs.psl.invivo.runtime.AbstractInterceptor;
 import com.rits.cloning.Cloner;
 
 public class StaticWrapper {
 
-//	public static HashMap<Integer, HashMap<String, HashMap<String, Object>>> hm = new HashMap<Integer, HashMap<String,;
+	public static HashMap<Integer, HashMap<String, HashMap<String, Object>>> hm = new HashMap<Integer, HashMap<String, HashMap<String, Object>>>();
 //	public static HashMap<String, Object> hm = new HashMap<String, Object>();
 //	Cloner c = new Cloner();
 //	c.
