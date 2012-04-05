@@ -61,6 +61,12 @@ public class StaticWrapper {
 	//	System.out.println(hm.toString());
 		return;
 	}
+	
+	public static void addToPointsToMap(Object origObj, Object newObj, int childID)
+	{
+		
+	}
+	
 	public static String foo;
 	public void foo(String in)
 	{
