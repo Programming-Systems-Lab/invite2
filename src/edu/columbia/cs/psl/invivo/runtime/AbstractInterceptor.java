@@ -50,7 +50,7 @@ public abstract class AbstractInterceptor {
 		{
 			return Integer.parseInt(Thread.currentThread().getName().replace(InvivoPreMain.config.getThreadPrefix(), ""));
 		}
-		throw new IllegalStateException("Not in a child thread");
+		return 0;
 	}
 	protected int getChildId(Object callee)
 	{
