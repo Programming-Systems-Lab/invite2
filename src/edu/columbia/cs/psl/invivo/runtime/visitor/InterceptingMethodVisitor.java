@@ -47,7 +47,6 @@ public class InterceptingMethodVisitor extends AdviceAdapter {
 			return;
 		}
 		if (opcode == GETSTATIC) {
-			System.out.println("Get static to " + owner +"."+name+"-"+desc);
 			visitLdcInsn(owner);
 			visitLdcInsn(name);
 			visitLdcInsn(desc);
@@ -55,8 +54,9 @@ public class InterceptingMethodVisitor extends AdviceAdapter {
 					"(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;");
 			if(Type.getType(desc).getSort() != Type.OBJECT)
 				unbox(Type.getType(desc));
+			else
+				checkCast(Type.getType(desc));
 		} else if (opcode == PUTSTATIC) {
-			System.out.println("Put static");
 			//here should be the value we want to set to
 			if(Type.getType(desc).getSort() != Type.OBJECT)
 				box(Type.getType(desc));
