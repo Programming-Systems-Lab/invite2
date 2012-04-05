@@ -15,7 +15,7 @@ import org.objectweb.asm.ClassWriter;
 
 import edu.columbia.cs.psl.invivo.runtime.visitor.InterceptingClassVisitor;
 
-
+@NotInstrumented
 public class InvivoClassFileTransformer implements ClassFileTransformer {
 	
 	public byte[] transform(ClassLoader loader, String className,
@@ -31,17 +31,17 @@ public class InvivoClassFileTransformer implements ClassFileTransformer {
 			  InterceptingClassVisitor cv = new InterceptingClassVisitor(cw);
 			  cv.setClassName(name);
 			  cr.accept(cv, ClassReader.EXPAND_FRAMES);
-//			  try{
-//				  FileOutputStream fos = new FileOutputStream(name+"_debug.class");
-//				  ByteArrayOutputStream bos = new ByteArrayOutputStream(cw.toByteArray().length);
-//				  bos.write(cw.toByteArray());
-//				  bos.writeTo(fos);
-//				  fos.close();
-//			  }
-//			  catch(Exception ex)
-//			  {
-//				  ex.printStackTrace();
-//			  }
+				  try{
+					  FileOutputStream fos = new FileOutputStream("debug/"+name+".class");
+					  ByteArrayOutputStream bos = new ByteArrayOutputStream(cw.toByteArray().length);
+					  bos.write(cw.toByteArray());
+					  bos.writeTo(fos);
+					  fos.close();
+				  }
+				  catch(Exception ex)
+				  {
+					  ex.printStackTrace();
+				  }
 			  return cw.toByteArray();
 		}
 		return classfileBuffer;

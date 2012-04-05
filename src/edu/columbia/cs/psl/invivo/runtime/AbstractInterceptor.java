@@ -10,6 +10,7 @@ import com.rits.cloning.Cloner;
 
 import edu.columbia.cs.psl.invivo.struct.MethodInvocation;
 
+@NotInstrumented
 public abstract class AbstractInterceptor {
 	private Object interceptedObject;
 	private static ThreadLocal<Integer> childId = new ThreadLocal<Integer>()

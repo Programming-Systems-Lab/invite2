@@ -13,11 +13,14 @@ public abstract class AbstractConfiguration {
 	{
 		return "__metamorphicChildCount";
 	}
-	
 	public abstract Class<? extends AbstractInterceptor> getInterceptorClass();
 	
 	public abstract Class<? extends Annotation> getAnnotationClass();
 	
+	public Class<? extends Annotation> getProtectorAnnotation()
+	{
+		return NotInstrumented.class;
+	}
 	public String getInterceptorFieldName()
 	{
 		return "___interceptor__by_mountaindew";

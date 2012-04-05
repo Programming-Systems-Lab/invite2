@@ -3,7 +3,7 @@ package edu.columbia.cs.psl.invivo.runtime;
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.Instrumentation;
 
-
+@NotInstrumented
 public class InvivoPreMain {
 	public static AbstractConfiguration config;
 public static void premain(String args, Instrumentation inst, AbstractConfiguration config) {

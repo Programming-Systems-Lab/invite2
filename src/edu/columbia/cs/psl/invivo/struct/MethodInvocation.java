@@ -3,7 +3,9 @@ package edu.columbia.cs.psl.invivo.struct;
 import java.io.Serializable;
 import java.lang.reflect.Method;
 
+import edu.columbia.cs.psl.invivo.runtime.NotInstrumented;
 
+@NotInstrumented
 public class MethodInvocation  implements Serializable
 {
 	/**
