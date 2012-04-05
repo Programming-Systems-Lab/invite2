@@ -3,9 +3,8 @@ package edu.columbia.cs.psl.invivo.runtime;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.WeakHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
-import javax.lang.model.element.Modifier;
 
 import com.rits.cloning.Cloner;
 
@@ -13,6 +12,10 @@ import edu.columbia.cs.psl.invivo.struct.MethodInvocation;
 
 public abstract class AbstractInterceptor {
 	private Object interceptedObject;
+	private static ThreadLocal<Integer> childId = new ThreadLocal<Integer>()
+			{
+			protected Integer initialValue() {return 0;};
+			};
 	
 	public AbstractInterceptor(Object intercepted)
 	{
@@ -30,6 +33,7 @@ public abstract class AbstractInterceptor {
 	{
 		try {
 			obj.getClass().getField(InvivoPreMain.config.getChildField()).setInt(obj, childId);
+			AbstractInterceptor.childId.set(childId);
 		} catch (Exception e) {
 			throw new IllegalArgumentException("The object requested was not intercepted and annotated (don't use this for a static call!)",e);
 		} 
@@ -44,13 +48,28 @@ public abstract class AbstractInterceptor {
 			throw new IllegalArgumentException("The object requested was not intercepted and annotated  (don't use this for a static call!)",e);
 		}
 	}
+	/**
+	 * Gets the child ID for the thread calling
+	 * If this thread is directly a child process, we can simply return
+	 * the thread ID - quick
+	 * If it's not, then that ID will default still at 0 (which would also be the case for the parent execution)
+	 * In that case, we crawl up the threadgroups to see if we're running under a child thread.
+	 * @return
+	 */
 	public static int getThreadChildId()
 	{
-		if(Thread.currentThread().getName().startsWith(InvivoPreMain.config.getThreadPrefix()))
-		{
-			return Integer.parseInt(Thread.currentThread().getName().replace(InvivoPreMain.config.getThreadPrefix(), ""));
-		}
-		return 0;
+		int ret = AbstractInterceptor.childId.get();
+		if(ret > 0)
+			return ret;
+		return getThreadChildId(Thread.currentThread().getThreadGroup());
+	}
+	private static int getThreadChildId(ThreadGroup g)
+	{
+		if(g == null || g.getName().equals("main"))
+			return 0;
+		if(g.getName().startsWith(InvivoPreMain.config.getThreadPrefix()))
+			return Integer.valueOf(g.getName().substring(InvivoPreMain.config.getThreadPrefix().length()));
+		return getThreadChildId(g.getParent());
 	}
 	protected int getChildId(Object callee)
 	{
@@ -148,7 +167,7 @@ public abstract class AbstractInterceptor {
 		return getMethod(methodName,types,interceptedObject.getClass());
 	}
 	private Cloner cloner = new Cloner();
-	private Integer childId = 1;
+	private static final AtomicInteger nextId = new AtomicInteger(1);
 
 	/**
 	 * Deep clone an object. Currently just delegates out but we may need to do more here manually,
@@ -162,20 +181,11 @@ public abstract class AbstractInterceptor {
 	}
 	protected Thread createChildThread(final MethodInvocation inv)
 	{
-		final int id;
-		synchronized (childId) {
-			id = childId;
-			childId++;
-		}
-		return new Thread(new Runnable() {		
+		final int id = nextId.getAndIncrement();
+		return new Thread(new ThreadGroup(InvivoPreMain.config.getThreadPrefix()+id),new Runnable() {		
 			
 			public void run() {
 				try {
-					int id;
-					synchronized (childId) {
-						id = childId;
-						childId++;
-					}
 					setAsChild(inv.callee,id);
 					inv.returnValue = inv.method.invoke(inv.callee, inv.params);
 				} catch (SecurityException e) {
