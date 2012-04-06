@@ -24,9 +24,6 @@ public class COWAInterceptor {
 	private static Cloner deepCloner = new Cloner();
 
 	public static Object readAndCOAIfNecessary(Object theOwner, Object theFieldValue, Object callee) {
-		System.out.println("You called read");
-		System.out.println(theOwner + "; " + callee + "; " + theFieldValue);
-
 		Object r = doCopy(AbstractInterceptor.getRootCallee(), theFieldValue);
 		int childNum = AbstractInterceptor.getThreadChildId();
 		
