@@ -60,6 +60,14 @@ public class COWAInterceptor {
 			ex.printStackTrace();
 		}
 	}
+	private static void setFieldCloned(Object obj, String fieldName)
+	{
+		try {
+			obj.getClass().getField(fieldName+InvivoPreMain.config.getHasBeenClonedField()).setBoolean(obj, true);
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
+	}
 
 	private static boolean isAClonedObject(Object obj) {
 		try {
