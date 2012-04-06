@@ -23,7 +23,7 @@ public class InvivoClassFileTransformer implements ClassFileTransformer {
 			byte[] classfileBuffer) throws IllegalClassFormatException {
 		String name = className.replace("/", ".");
 		if(!name.startsWith("java"))
-		{			
+		{
 			ClassReader cr = new ClassReader(classfileBuffer);
 			  ClassWriter cw = new ClassWriter(cr,
 		     ClassWriter.COMPUTE_MAXS |

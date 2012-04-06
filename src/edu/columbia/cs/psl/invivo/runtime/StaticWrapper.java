@@ -31,7 +31,7 @@ public class StaticWrapper {
 	 * Take a threadid as a parameter. 
 	 * Jon will call it whenever a thread dies.
 	 */
-	public static void cleanupThread(int threadid)
+	public static void cleanupChildInvocation(int threadid)
 	{
 		return;
 	}

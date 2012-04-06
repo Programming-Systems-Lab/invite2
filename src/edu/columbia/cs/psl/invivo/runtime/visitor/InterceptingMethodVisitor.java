@@ -41,12 +41,31 @@ public class InterceptingMethodVisitor extends AdviceAdapter {
 	@Override
 	public void visitFieldInsn(int opcode, String owner, String name,
 			String desc) {
-		if(!rewrite || owner.startsWith("java") || owner.startsWith("sun"))
+		if(!rewrite)
 		{
 			super.visitFieldInsn(opcode, owner, name, desc);
 			return;
 		}
-		if (opcode == GETSTATIC) {
+		if(opcode == GETFIELD && desc.length() > 1)
+		{	
+//			super.visitFieldInsn(opcode, owner, name, desc); //Do NOT do any crazy COA stuff yet
+			Label lblForCOA = new Label();
+			Label lblForNextInsn = new Label();
+			dup();
+			super.visitFieldInsn(GETFIELD, owner, name+InvivoPreMain.config.getHasBeenClonedField(), Type.BOOLEAN_TYPE.getDescriptor());
+			super.visitJumpInsn(IFEQ, lblForCOA);
+			super.visitFieldInsn(opcode, owner, name, desc);			
+			visitJumpInsn(GOTO, lblForNextInsn);			
+			super.visitLabel(lblForCOA);
+			dup();
+			super.visitFieldInsn(opcode, owner, name, desc);
+			loadThis();
+			visitMethodInsn(INVOKESTATIC, "edu/columbia/cs/psl/invivo/runtime/COWAInterceptor", "readAndCOAIfNecessary",
+					"(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;");
+			checkCast(Type.getType(desc));
+			super.visitLabel(lblForNextInsn);
+		}
+		else if (opcode == GETSTATIC && !(owner.startsWith("java") || owner.startsWith("sun"))) {
 			visitLdcInsn(owner);
 			visitLdcInsn(name);
 			visitLdcInsn(desc);
@@ -202,7 +221,7 @@ public class InterceptingMethodVisitor extends AdviceAdapter {
 			swap();
 	     visitIntInsn(SIPUSH, opcode);
 			loadLocal(refIdForInterceptor);
-	     visitMethodInsn(INVOKEVIRTUAL, InvivoPreMain.config.getInterceptorClass().getName().replace(".", "/"), "onExit", "(Ljava/lang/Object;II)V");
+	     visitMethodInsn(INVOKEVIRTUAL, InvivoPreMain.config.getInterceptorClass().getName().replace(".", "/"), "__onExit", "(Ljava/lang/Object;II)V");
 	   }
 	private String className;
 	public void setClassName(String className) {

@@ -13,6 +13,10 @@ public abstract class AbstractConfiguration {
 	{
 		return "__metamorphicChildCount";
 	}
+	public String getHasBeenClonedField()
+	{
+		return "__invivoCloned";
+	}
 	public abstract Class<? extends AbstractInterceptor> getInterceptorClass();
 	
 	public abstract Class<? extends Annotation> getAnnotationClass();

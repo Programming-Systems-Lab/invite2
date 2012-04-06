@@ -3,6 +3,7 @@ package edu.columbia.cs.psl.invivo.runtime.visitor;
 import org.apache.log4j.Logger;
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
@@ -19,6 +20,13 @@ public class InterceptingClassVisitor extends ClassVisitor {
 		super(Opcodes.ASM4, cv);
 	}
 
+	@Override
+	public FieldVisitor visitField(int access, String name, String desc, String signature, Object value) {
+		if(desc.length() > 1)
+			super.visitField(Opcodes.ACC_PRIVATE, name+InvivoPreMain.config.getHasBeenClonedField(), Type.BOOLEAN_TYPE.getDescriptor(), null, false);
+		
+		return super.visitField(access, name, desc, signature, value);
+	}
 	private boolean runIMV = true;
 	@Override
 	public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
@@ -41,6 +49,7 @@ public class InterceptingClassVisitor extends ClassVisitor {
 		else
 			return mv;
 	}
+	//Default to true to make it work for all classes
 	private boolean willRewrite = false;
 	public void setShouldRewrite()
 	{
@@ -65,8 +74,14 @@ public class InterceptingClassVisitor extends ClassVisitor {
 			
 			FieldNode fn2 = new FieldNode(Opcodes.ASM4, Opcodes.ACC_PUBLIC,
 					InvivoPreMain.config.getChildField(),
-					Type.INT_TYPE.getDescriptor(), null, 0); //TODO: abstract the interceptor type
+					Type.INT_TYPE.getDescriptor(), null, 0); 
 			fn2.accept(cv);
+			
+			FieldNode fn4 = new FieldNode(Opcodes.ASM4, Opcodes.ACC_PUBLIC,
+					InvivoPreMain.config.getHasBeenClonedField(),
+					Type.BOOLEAN_TYPE.getDescriptor(), null, false);
+			fn4.accept(cv);
+			
 			logger.info("Actually rewrote class: " + className);
 		}
 	}

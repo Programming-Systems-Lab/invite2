@@ -3,6 +3,7 @@ package edu.columbia.cs.psl.invivo.runtime;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 
@@ -82,7 +83,15 @@ public abstract class AbstractInterceptor {
 			throw new IllegalArgumentException("The object requested was not intercepted and annotated (don't use this for a static call!)",e);
 		}
 	}
-	
+	protected void cleanupChild(int childId)
+	{
+		StaticWrapper.cleanupChildInvocation(childId);
+		createdCallees.remove(childId);
+	}
+	public final void __onExit(Object val, int op, int id)
+	{
+		onExit(val, op, id);
+	}
 	public final int __onEnter(String methodName, String[] types, Object[] params, Object callee)
 	{
 		return onEnter(callee, getCurMethod(methodName,types), params);
@@ -180,6 +189,11 @@ public abstract class AbstractInterceptor {
 	{
 		return cloner.deepClone(obj);
 	}
+	public static Object getRootCallee()
+	{
+		return createdCallees.get(getThreadChildId());
+	}
+	private static HashMap<Integer, Object> createdCallees = new HashMap<Integer, Object>();
 	protected Thread createChildThread(final MethodInvocation inv)
 	{
 		final int id = nextId.getAndIncrement();
@@ -187,8 +201,10 @@ public abstract class AbstractInterceptor {
 			
 			public void run() {
 				try {
+					createdCallees.put(id, inv.callee);
 					setAsChild(inv.callee,id);
 					inv.returnValue = inv.method.invoke(inv.callee, inv.params);
+					cleanupChild(id);
 				} catch (SecurityException e) {
 					e.printStackTrace();
 				} catch (IllegalArgumentException e) {
