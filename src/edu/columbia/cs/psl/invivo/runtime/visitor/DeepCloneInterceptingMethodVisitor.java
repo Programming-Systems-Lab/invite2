@@ -12,14 +12,14 @@ import edu.columbia.cs.psl.invivo.runtime.InvivoPreMain;
 import edu.columbia.cs.psl.invivo.runtime.StaticWrapper;
 
 
-public class InterceptingMethodVisitor extends AdviceAdapter {
+public class DeepCloneInterceptingMethodVisitor extends AdviceAdapter {
 	private String name;
 
 
 	private Type[] argumentTypes;
 	private int access;
 
-	protected InterceptingMethodVisitor(int api, MethodVisitor mv, int access,
+	protected DeepCloneInterceptingMethodVisitor(int api, MethodVisitor mv, int access,
 			String name, String desc) {
 		super(api, mv, access, name, desc);
 		this.name = name;
@@ -46,26 +46,7 @@ public class InterceptingMethodVisitor extends AdviceAdapter {
 			super.visitFieldInsn(opcode, owner, name, desc);
 			return;
 		}
-		if(opcode == GETFIELD && desc.length() > 1)
-		{	
-//			super.visitFieldInsn(opcode, owner, name, desc); //Do NOT do any crazy COA stuff yet
-			Label lblForCOA = new Label();
-			Label lblForNextInsn = new Label();
-			dup();
-			super.visitFieldInsn(GETFIELD, owner, name+InvivoPreMain.config.getHasBeenClonedField(), Type.BOOLEAN_TYPE.getDescriptor());
-			super.visitJumpInsn(IFEQ, lblForCOA);
-			super.visitFieldInsn(opcode, owner, name, desc);			
-			visitJumpInsn(GOTO, lblForNextInsn);			
-			super.visitLabel(lblForCOA);
-			dup();
-			super.visitFieldInsn(opcode, owner, name, desc);
-			loadThis();
-			visitMethodInsn(INVOKESTATIC, "edu/columbia/cs/psl/invivo/runtime/COWAInterceptor", "readAndCOAIfNecessary",
-					"(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;");
-			checkCast(Type.getType(desc));
-			super.visitLabel(lblForNextInsn);
-		}
-		else if (opcode == GETSTATIC && !(owner.startsWith("java") || owner.startsWith("sun"))) {
+		if (opcode == GETSTATIC && !(owner.startsWith("java") || owner.startsWith("sun"))) {
 			visitLdcInsn(owner);
 			visitLdcInsn(name);
 			visitLdcInsn(desc);
@@ -176,6 +157,7 @@ public class InterceptingMethodVisitor extends AdviceAdapter {
 	int refIdForInterceptor;
 	@Override
 	protected void onMethodEnter() {
+		//This is from the old way of having the main thread continue
 		super.onMethodEnter();
 		if(!rewrite)
 			return;

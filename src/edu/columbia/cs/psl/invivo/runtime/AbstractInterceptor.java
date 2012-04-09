@@ -27,9 +27,7 @@ public abstract class AbstractInterceptor {
 	public Object getInterceptedObject() {
 		return interceptedObject;
 	}
-	public abstract int onEnter(Object callee, Method method, Object[] params);
 	
-	public abstract void onExit(Object val, int op, int id);
 
 	protected void setAsChild(Object obj, int childId)
 	{
@@ -86,16 +84,8 @@ public abstract class AbstractInterceptor {
 	protected void cleanupChild(int childId)
 	{
 		StaticWrapper.cleanupChildInvocation(childId);
-		createdCallees.remove(childId);
 	}
-	public final void __onExit(Object val, int op, int id)
-	{
-		onExit(val, op, id);
-	}
-	public final int __onEnter(String methodName, String[] types, Object[] params, Object callee)
-	{
-		return onEnter(callee, getCurMethod(methodName,types), params);
-	}
+	
 	protected Method getMethod(String methodName,Class<?>[] params, Class<?> clazz) throws NoSuchMethodException
 	{
 		return getMethod(methodName, params, clazz, clazz);
@@ -130,7 +120,7 @@ public abstract class AbstractInterceptor {
 			return getMethod(methodName, params, clazz.getSuperclass(),originalClazz);
 		throw new NoSuchMethodException(originalClazz.getCanonicalName() +"."+methodName + "("+ implode(params) + ")");
 	}
-	private String implode(Object[] array)
+	protected String implode(Object[] array)
 	{
 		StringBuilder ret = new StringBuilder();
 		if(array == null || array.length == 0)
@@ -142,7 +132,7 @@ public abstract class AbstractInterceptor {
 		}
 		return ret.substring(0, ret.length()-2);
 	}
-	private Method getMethod(String methodName, String[] types, Class<?> clazz)
+	protected Method getMethod(String methodName, String[] types, Class<?> clazz)
 	{
 		try {
 			for(Method m : clazz.getDeclaredMethods())
@@ -172,12 +162,11 @@ public abstract class AbstractInterceptor {
 			return getMethod(methodName, types, clazz.getSuperclass());
 		return null;
 	}
-	private Method getCurMethod(String methodName,String[] types)
+	protected Method getCurMethod(String methodName,String[] types)
 	{
 		return getMethod(methodName,types,interceptedObject.getClass());
 	}
-	private Cloner cloner = new Cloner();
-	private static final AtomicInteger nextId = new AtomicInteger(1);
+	protected static final AtomicInteger nextId = new AtomicInteger(1);
 
 	/**
 	 * Deep clone an object. Currently just delegates out but we may need to do more here manually,
@@ -185,36 +174,6 @@ public abstract class AbstractInterceptor {
 	 * @param obj
 	 * @return
 	 */
-	protected <T> T deepClone(T obj)
-	{
-		return cloner.deepClone(obj);
-	}
-	public static Object getRootCallee()
-	{
-		return createdCallees.get(getThreadChildId());
-	}
-	private static HashMap<Integer, Object> createdCallees = new HashMap<Integer, Object>();
-	protected Thread createChildThread(final MethodInvocation inv)
-	{
-		final int id = nextId.getAndIncrement();
-		return new Thread(new ThreadGroup(InvivoPreMain.config.getThreadPrefix()+id),new Runnable() {		
-			
-			public void run() {
-				try {
-					createdCallees.put(id, inv.callee);
-					setAsChild(inv.callee,id);
-					inv.returnValue = inv.method.invoke(inv.callee, inv.params);
-					cleanupChild(id);
-				} catch (SecurityException e) {
-					e.printStackTrace();
-				} catch (IllegalArgumentException e) {
-					e.printStackTrace();
-				} catch (IllegalAccessException e) {
-					e.printStackTrace();
-				} catch (InvocationTargetException e) {
-					e.printStackTrace();
-				}
-			}
-		},InvivoPreMain.config.getThreadPrefix()+id);
-	}
+	protected abstract <T> T deepClone(T obj);
+	
 }

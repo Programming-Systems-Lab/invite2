@@ -24,9 +24,9 @@ public class COWAInterceptor {
 	private static Cloner deepCloner = new Cloner();
 
 	public static Object readAndCOAIfNecessary(Object theOwner, Object theFieldValue, Object callee) {
-		Object r = doCopy(AbstractInterceptor.getRootCallee(), theFieldValue);
+		Object r = doCopy(AbstractLazyCloningInterceptor.getRootCallee(), theFieldValue);
 		int childNum = AbstractInterceptor.getThreadChildId();
-		
+		System.out.println(childNum + "Copying on " +r);
 		synchronized (pointsTo) {
 			if(!pointsTo.containsKey(childNum))
 				pointsTo.put(childNum, new IdentityHashMap<Object, Object>());
@@ -53,17 +53,18 @@ public class COWAInterceptor {
 		return r;
 	}
 
-	private static void setIsAClonedObject(Object obj) {
+	public static void setIsAClonedObject(Object obj) {
 		try {
 			obj.getClass().getField(InvivoPreMain.config.getHasBeenClonedField()).setBoolean(obj, true);
+			obj.getClass().getField(InvivoPreMain.config.getChildField()).setInt(obj, AbstractLazyCloningInterceptor.getThreadChildId());
 		} catch (Exception ex) {
-			ex.printStackTrace();
+//			logger.error("Unable to set cloned on " + obj, ex);
 		}
 	}
-	private static void setFieldCloned(Object obj, String fieldName)
+	private static void setFieldCloned(Object obj, Field f)
 	{
 		try {
-			obj.getClass().getField(fieldName+InvivoPreMain.config.getHasBeenClonedField()).setBoolean(obj, true);
+			obj.getClass().getField(f.getName()+InvivoPreMain.config.getHasBeenClonedField()).setBoolean(obj, true);
 		} catch (Exception ex) {
 			ex.printStackTrace();
 		}
@@ -90,7 +91,6 @@ public class COWAInterceptor {
 	 */
 	public static Object doCopy(Object root, Object leaf) {
 		Object newLeaf = deepCloner.shallowClone(leaf);
-
 		setIsAClonedObject(leaf);
 		traverseGraphAndReplace(root, leaf, newLeaf);
 		return newLeaf;
@@ -122,11 +122,15 @@ public class COWAInterceptor {
 	}
 
 	private static void traverseGraphAndReplace(Object root, Object leaf, Object newLeaf) {
+//		logger.info(root);
+//		logger.info(leaf);
+//		System.out.println("Searching for obj " + leaf + " on " + root + (isAClonedObject(root) ? " (cloned) " : " not cloned"));
 		if (root == null)
 			return;
 		if (!isAClonedObject(root))
 			return;
 		Class<?> clz = root.getClass();
+//		logger.info(clz);
 		if (clz.isArray()) {
 			final int length = Array.getLength(root);
 			for (int i = 0; i < length; i++) {
@@ -145,12 +149,14 @@ public class COWAInterceptor {
 			if (!Modifier.isStatic(modifiers)) {
 				try {
 					final Object fieldObject = field.get(root);
-					if (isAClonedObject(fieldObject)) {
 						if (fieldObject == leaf)
+						{
+//							System.out.println("Found obj " + fieldObject + " on " + root);
+							setFieldCloned(root, field);
 							field.set(root, newLeaf);
-						else
+						}
+						else if(isAClonedObject(fieldObject))
 							traverseGraphAndReplace(fieldObject, leaf, newLeaf);
-					}
 				} catch (Exception ex) {
 					ex.printStackTrace();
 				}

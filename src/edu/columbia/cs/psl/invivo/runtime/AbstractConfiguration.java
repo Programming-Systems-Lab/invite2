@@ -9,6 +9,10 @@ public abstract class AbstractConfiguration {
 	{
 		return "__invivoChild_";
 	}
+	public String getInterceptedPrefix()
+	{
+		return "__original__";
+	}
 	public String getChildField()
 	{
 		return "__metamorphicChildCount";
