@@ -3,7 +3,6 @@ package edu.columbia.cs.psl.invivo.runtime;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
-import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -26,7 +25,7 @@ public class COWAInterceptor {
 	public static Object readAndCOAIfNecessary(Object theOwner, Object theFieldValue, Object callee) {
 		Object r = doCopy(AbstractLazyCloningInterceptor.getRootCallee(), theFieldValue);
 		int childNum = AbstractInterceptor.getThreadChildId();
-		System.out.println(childNum + "Copying on " +r);
+		logger.info(childNum + "Copying on " +r);
 		synchronized (pointsTo) {
 			if(!pointsTo.containsKey(childNum))
 				pointsTo.put(childNum, new IdentityHashMap<Object, Object>());

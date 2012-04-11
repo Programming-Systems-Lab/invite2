@@ -1,10 +1,7 @@
 package edu.columbia.cs.psl.invivo.runtime;
 
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.HashMap;
-
-import com.rits.cloning.Cloner;
 
 import edu.columbia.cs.psl.invivo.struct.MethodInvocation;
 
@@ -46,14 +43,7 @@ public abstract class AbstractLazyCloningInterceptor extends AbstractInterceptor
 	{
 		return createRunnerThread(inv, true);
 	}
-	
-	public final Object __onCall(String methodName, String[] types, Object[] params, Object callee)
-	{
-		return onCall(callee, getCurMethod(InvivoPreMain.config.getInterceptedPrefix()+methodName,types), params);
-	}
-	
-	public abstract Object onCall(Object callee, Method curMethod, Object[] params);
-	
+
 	@Override
 	protected void cleanupChild(int childId) {
 		super.cleanupChild(childId);

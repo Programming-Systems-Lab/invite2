@@ -9,17 +9,16 @@ import org.objectweb.asm.commons.AdviceAdapter;
 import org.objectweb.asm.commons.Method;
 
 import edu.columbia.cs.psl.invivo.runtime.InvivoPreMain;
-import edu.columbia.cs.psl.invivo.runtime.StaticWrapper;
 
 
-public class DeepCloneInterceptingMethodVisitor extends AdviceAdapter {
+public class InterceptingMethodVisitor extends AdviceAdapter {
 	private String name;
 
 
 	private Type[] argumentTypes;
 	private int access;
 
-	protected DeepCloneInterceptingMethodVisitor(int api, MethodVisitor mv, int access,
+	protected InterceptingMethodVisitor(int api, MethodVisitor mv, int access,
 			String name, String desc) {
 		super(api, mv, access, name, desc);
 		this.name = name;

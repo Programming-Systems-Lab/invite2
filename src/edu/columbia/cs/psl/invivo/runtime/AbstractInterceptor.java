@@ -1,15 +1,10 @@
 
 package edu.columbia.cs.psl.invivo.runtime;
 
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
-
 import com.rits.cloning.Cloner;
-
-import edu.columbia.cs.psl.invivo.struct.MethodInvocation;
 
 @NotInstrumented
 public abstract class AbstractInterceptor {
@@ -180,5 +175,15 @@ public abstract class AbstractInterceptor {
 		T ret = cloner.deepClone(obj);
 		return ret;
 	}
+	public final void __onExit(Object val, int op, int id)
+	{
+		onExit(val, op, id);
+	}
+	public final int __onEnter(String methodName, String[] types, Object[] params, Object callee)
+	{
+		return onEnter(callee, getCurMethod(methodName,types), params);
+	}
+	public abstract int onEnter(Object callee, Method method, Object[] params);
 	
+	public abstract void onExit(Object val, int op, int id);
 }

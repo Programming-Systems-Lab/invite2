@@ -1,17 +1,17 @@
 package edu.columbia.cs.psl.invivo.runtime;
 
-import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import edu.columbia.cs.psl.invivo.runtime.AbstractInterceptor;
+import org.apache.log4j.Logger;
 
 public class StaticWrapper {
 	public static HashMap<Integer, HashMap<String, HashMap<String, Object>>> hm = new HashMap<Integer, HashMap<String, HashMap<String, Object>>>();
 	public static HashMap<Object,Object> ptm = new HashMap<Object, Object>();
-	
+	private static Logger logger = Logger.getLogger(StaticWrapper.class);
+
 	/*
 	 * clean out old threads that are dead. 
 	 * Take a threadid as a parameter. 
@@ -59,7 +59,7 @@ public class StaticWrapper {
 						HashMap<String,Object> fieldmap = classmap.get(owner);
 						
 						fieldmap.put(name, (useLazyClone ? AbstractInterceptor.shallowClone(retValue) : AbstractInterceptor.deepClone(retValue)));
-						System.out.println("Put value "+fieldmap.get(name).toString()+" to field "+ name+" in thread 0.");
+						logger.debug("Put value "+fieldmap.get(name).toString()+" to field "+ name+" in thread 0.");
 					}
 				}
 			//return reference to original
@@ -124,10 +124,10 @@ public class StaticWrapper {
 	public static void printFieldMap(HashMap<String, Object> fm, String name)
 	{
 		Set<Entry<String, Object>> fields = fm.entrySet();
-		Iterator it = fields.iterator();
+		Iterator<Entry<String, Object>> it = fields.iterator();
 		while (it.hasNext())
 		{
-			Entry<String, Object> el = (Entry<String,Object>) it.next();
+			Entry<String, Object> el = it.next();
 			System.out.println("\t\t"+AbstractInterceptor.getThreadChildId() + " " +name.toUpperCase() + "."+ el.getKey()+ ":  " + (String) el.getValue());
 		}
 	}

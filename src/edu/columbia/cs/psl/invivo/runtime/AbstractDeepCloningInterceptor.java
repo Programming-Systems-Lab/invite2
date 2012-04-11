@@ -1,10 +1,7 @@
 package edu.columbia.cs.psl.invivo.runtime;
 
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.HashMap;
-
-import com.rits.cloning.Cloner;
 
 import edu.columbia.cs.psl.invivo.struct.MethodInvocation;
 
@@ -13,17 +10,7 @@ public abstract class AbstractDeepCloningInterceptor  extends AbstractIntercepto
 	public AbstractDeepCloningInterceptor(Object intercepted) {
 		super(intercepted);
 	}
-	public final void __onExit(Object val, int op, int id)
-	{
-		onExit(val, op, id);
-	}
-	public final int __onEnter(String methodName, String[] types, Object[] params, Object callee)
-	{
-		return onEnter(callee, getCurMethod(methodName,types), params);
-	}
-	public abstract int onEnter(Object callee, Method method, Object[] params);
 	
-	public abstract void onExit(Object val, int op, int id);
 	public static Object getRootCallee()
 	{
 		return createdCallees.get(getThreadChildId());
