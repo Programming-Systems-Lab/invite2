@@ -51,11 +51,4 @@ public abstract class AbstractDeepCloningInterceptor  extends AbstractIntercepto
 			}
 		},InvivoPreMain.config.getThreadPrefix()+id);
 	}
-	private Cloner cloner = new Cloner();
-	protected <T> T deepClone(T obj)
-	{
-		T ret = cloner.deepClone(obj);
-		COWAInterceptor.setIsAClonedObject(ret);
-		return ret;
-	}
 }

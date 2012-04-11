@@ -73,9 +73,10 @@ public class LazyCloneInterceptingMethodVisitor extends AdviceAdapter {
 		else if (opcode == GETSTATIC && !(owner.startsWith("java") || owner.startsWith("sun"))) {
 			visitLdcInsn(owner);
 			visitLdcInsn(name);
-			visitLdcInsn(desc);
+			super.visitFieldInsn(opcode, owner, name, desc);
+			visitLdcInsn(true);
 			visitMethodInsn(INVOKESTATIC, "edu/columbia/cs/psl/invivo/runtime/StaticWrapper", "getValue",
-					"(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;");
+					"(Ljava/lang/String;Ljava/lang/String;Ljava/lang/Object;Z)Ljava/lang/Object;");
 			if(Type.getType(desc).getSort() != Type.OBJECT)
 				unbox(Type.getType(desc));
 			else
@@ -88,7 +89,7 @@ public class LazyCloneInterceptingMethodVisitor extends AdviceAdapter {
 			visitLdcInsn(name);
 			visitLdcInsn(desc);
 			visitMethodInsn(INVOKESTATIC, "edu/columbia/cs/psl/invivo/runtime/StaticWrapper", "setValue",
-					"(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V");
+					"(Ljava/lang/Object;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
 		}
 		// else do the standard dynamic lookup
 		else super.visitFieldInsn(opcode, owner, name, desc);

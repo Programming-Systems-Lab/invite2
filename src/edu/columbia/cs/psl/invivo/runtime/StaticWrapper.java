@@ -22,10 +22,10 @@ public class StaticWrapper {
 		return;
 	}
 	
-	public static Object getValue(Object owner, Object name, Object desc){
+	public static Object getValue(String owner, String name, Object curValue, boolean useLazyClone){
 		System.out.println("Calling get value");
 		int threadid = AbstractInterceptor.getThreadChildId();
-		Object retvalue = null;
+		Object retValue = null;
 
 		// TODO handle cases where it does not appear in each of the 3 hashmaps
 		if (hm.containsKey(threadid))
@@ -34,27 +34,16 @@ public class StaticWrapper {
 			if (classmap.containsKey(owner))
 			{
 				HashMap<String,Object> fieldmap = classmap.get(owner);
-				printFieldMap(fieldmap, (String) owner);
+				printFieldMap(fieldmap, owner);
 				if (fieldmap.containsKey(name))
 				{
 					Object value = fieldmap.get(name);
-					retvalue = value;
+					retValue = value;
 
 				}
 			}
 		}
-		try
-		{
-			Class<?> clazz = Class.forName(((String)owner).replace('/', '.'));
-			Field f = clazz.getDeclaredField((String)name);
-			f.setAccessible(true);
-			retvalue = f.get(null);
-		}
-		catch(Exception ex)
-		{
-			System.err.println(owner);
-			ex.printStackTrace();
-		}
+		retValue = curValue;
 		
 		if (threadid == 0)
 		{
@@ -69,27 +58,27 @@ public class StaticWrapper {
 						//TODO if classmap !contain owner
 						HashMap<String,Object> fieldmap = classmap.get(owner);
 						
-						fieldmap.put((String) name, retvalue);
-						System.out.println("Put value "+fieldmap.get(name).toString()+" to field "+(String) name+" in thread 0.");
+						fieldmap.put(name, (useLazyClone ? AbstractInterceptor.shallowClone(retValue) : AbstractInterceptor.deepClone(retValue)));
+						System.out.println("Put value "+fieldmap.get(name).toString()+" to field "+ name+" in thread 0.");
 					}
 				}
 			//return reference to original
 			
 		}
 		
-		//given retvalue, deal with pointsto
-		if (retvalue != null)
+		//given retvalue, deal with pointst
+		if (retValue != null)
 		{
-			if (ptm.containsKey(retvalue))
+			if (ptm.containsKey(retValue))
 			{
-				return ptm.get(retvalue);
+				return ptm.get(retValue);
 			} else{
-				return retvalue;
+				return retValue;
 			}
 		} else return null; //put a better error condition or exception in here
 	}
 
-	public static void setValue(Object value, Object owner, Object name, Object desc){
+	public static void setValue(Object value, String owner, String name, String desc){
 		
 		System.out.println("Set value <"  + value+">" + "<"+owner+">"+"<"+name+">"+"<"+desc+">");
 		int threadid = AbstractInterceptor.getThreadChildId();
@@ -99,17 +88,17 @@ public class StaticWrapper {
 			if (classmap.containsKey(owner))
 			{
 				HashMap<String,Object> fieldmap = classmap.get(owner);
-				fieldmap.put((String)name, value);
+				fieldmap.put(name, value);
 			} else {
 				HashMap<String,Object> fieldmap = new HashMap<String,Object>();
-				fieldmap.put((String) name, value);
-				classmap.put((String) owner, fieldmap);
+				fieldmap.put(name, value);
+				classmap.put(owner, fieldmap);
 			}
 		} else {
 			HashMap<String,HashMap<String,Object>> classmap = new HashMap<String,HashMap<String,Object>>();
 			HashMap<String,Object> fieldmap = new HashMap<String,Object>();
-			fieldmap.put((String) name, value);
-			classmap.put((String) owner, fieldmap);
+			fieldmap.put(name, value);
+			classmap.put(owner, fieldmap);
 			hm.put(threadid, classmap);
 		}
 		System.out.println(hm.isEmpty());

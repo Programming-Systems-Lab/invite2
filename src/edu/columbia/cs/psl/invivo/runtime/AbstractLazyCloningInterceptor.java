@@ -60,16 +60,5 @@ public abstract class AbstractLazyCloningInterceptor extends AbstractInterceptor
 		createdCallees.remove(childId);
 	}
 	
-	private Cloner cloner = new Cloner();
-	protected <T> T shallowClone(T obj)
-	{
-		T ret = cloner.shallowClone(obj);
-		COWAInterceptor.setIsAClonedObject(ret);
-		return ret;
-	}
-	protected <T> T deepClone(T obj)
-	{
-		T ret = cloner.deepClone(obj);
-		return ret;
-	}
+	
 }

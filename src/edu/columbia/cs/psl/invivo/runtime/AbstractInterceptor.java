@@ -168,12 +168,17 @@ public abstract class AbstractInterceptor {
 	}
 	protected static final AtomicInteger nextId = new AtomicInteger(1);
 
-	/**
-	 * Deep clone an object. Currently just delegates out but we may need to do more here manually,
-	 * hence use this abstraction please.
-	 * @param obj
-	 * @return
-	 */
-	protected abstract <T> T deepClone(T obj);
+	private static Cloner cloner = new Cloner();
+	public static <T> T shallowClone(T obj)
+	{
+		T ret = cloner.shallowClone(obj);
+		COWAInterceptor.setIsAClonedObject(ret);
+		return ret;
+	}
+	public static <T> T deepClone(T obj)
+	{
+		T ret = cloner.deepClone(obj);
+		return ret;
+	}
 	
 }
