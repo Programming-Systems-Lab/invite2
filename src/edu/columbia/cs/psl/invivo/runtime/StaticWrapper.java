@@ -11,149 +11,92 @@ import org.apache.log4j.Logger;
 
 public class StaticWrapper {
 	public static HashMap<Integer, HashMap<String, HashMap<String, Object>>> hm = new HashMap<Integer, HashMap<String, HashMap<String, Object>>>();
+	public static HashMap<Integer, HashMap<Object, Object>> pointsTo = new HashMap<Integer, HashMap<Object, Object>>();
 	private static Logger logger = Logger.getLogger(StaticWrapper.class);
 
 	/*
-	 * clean out old threads that are dead. Take a threadid as a parameter. Jon
+	 * clean out old threads that are dead. Take a childid as a parameter. Jon
 	 * will call it whenever a thread dies.
 	 */
-	public static void cleanupChildInvocation(int threadid) {
-		if (hm.containsKey(threadid)) {
-			hm.remove(threadid);
-		}
-		return;
+	public static void cleanupChildInvocation(int childId) {
+		hm.remove(childId);
+		pointsTo.remove(childId);
 	}
 
 	public static Object getValue(String owner, String name, Object curValue,
-			boolean useLazyClone) throws InvalidAttributesException, SecurityException, NoSuchFieldException, ClassNotFoundException {
+			boolean useLazyClone) throws InvalidAttributesException,
+			SecurityException, NoSuchFieldException, ClassNotFoundException {
 		System.out.println("Calling get value");
-		int threadid = AbstractInterceptor.getThreadChildId();
+		int childId = AbstractInterceptor.getThreadChildId();
 		Object retValue = null;
 
-		if (hm.containsKey(threadid)) {
-			HashMap<String, HashMap<String, Object>> classmap = hm
-					.get(threadid);
-			if (classmap.containsKey(owner)) {
-				HashMap<String, Object> fieldmap = classmap.get(owner);
-				printFieldMap(fieldmap, owner);
-				if (fieldmap.containsKey(name)) {
-					Object value = fieldmap.get(name);
-					retValue = value;
-				} else {
-					// thread is in hm and class is in classmap but field is not in fieldmap
-					Object classValue = Class.forName(owner).getField(name);
-					fieldmap.put(name, classValue);
-					retValue = classValue;
-				}
-			} else {
-				// thread is in hm but class is not in classmap
-				Class clazz = Class.forName(owner);
-				HashMap<String, Object> fieldmap = new HashMap<String,Object>();
-				Object classValue = clazz.getField(name);
-				fieldmap.put(name, classValue);
-				classmap.put(clazz.getSimpleName(), fieldmap);
-				retValue = classValue;
-			}
-		} else {
-			// thread is not in hm
-			HashMap<String, HashMap<String,Object>> classmap = new HashMap<String, HashMap<String, Object>>();
-			HashMap<String, Object> fieldmap = new HashMap<String,Object>();
-			Class clazz = Class.forName(owner);
-			Object classValue = clazz.getField(name);
-			fieldmap.put(name, classValue);
-			classmap.put(owner, fieldmap);
-			hm.put(threadid, classmap);
-			// also need to add pointsto map for this new thread
-			//TODO  does the key need to be an object too or will a string suffice?
-			HashMap<String, Object> ptm = new HashMap<String,Object>();
-			classmap.put("pointsto", ptm);
-			retValue = classValue;	
-		}
-		retValue = curValue;
-
-		if (threadid == 0) {
-
+		if (childId > 0) {
+			
+			if(!hm.containsKey(childId))
+				hm.put(childId, new HashMap<String, HashMap<String,Object>>());
+			if(!hm.get(childId).containsKey(owner))
+				hm.get(childId).put(owner, new HashMap<String, Object>());
+			
+			HashMap<String, Object> fieldmap = hm.get(childId).get(owner);
+					if (!fieldmap.containsKey(name)) {
+						//fieldmap does not contain this field
+						Object toUse = null;
+						if (hm.containsKey(0) &&
+								hm.get(0).containsKey(owner)
+								&& hm.get(0).get(owner).containsKey(name))
+							toUse = hm.get(0).get(owner).get(name);
+						else
+							toUse = curValue;
+						fieldmap.put(name, (useLazyClone ? AbstractInterceptor
+								.shallowClone(toUse) : AbstractInterceptor
+								.deepClone(toUse)));
+					}
+					retValue = fieldmap.get(name);
+		} else if (childId == 0) {
+			retValue = curValue;
+			
 			// make a copy of value, store in hashmap
-			if (hm.containsKey(0)) {
-				// TODO if hm !contain 0
-				HashMap<String, HashMap<String, Object>> classmap = hm.get(0);
-				if (classmap.containsKey(owner)) {
-					// TODO if classmap !contain owner
-					HashMap<String, Object> fieldmap = classmap.get(owner);
-
-					fieldmap.put(
-							name,
-							(useLazyClone ? AbstractInterceptor
-									.shallowClone(retValue)
-									: AbstractInterceptor.deepClone(retValue)));
-					logger.debug("Put value " + fieldmap.get(name).toString()
-							+ " to field " + name + " in thread 0.");
-				}
-			}
-			// return reference to original
-
+			if (!hm.containsKey(0))
+				hm.put(0, new HashMap<String, HashMap<String, Object>>());
+			if (!hm.get(0).containsKey(owner))
+				hm.get(0).put(owner, new HashMap<String, Object>());
+			if (!hm.get(0).get(owner).containsKey(name))
+				hm.get(0).get(owner).put(name, (useLazyClone ? 
+						AbstractInterceptor.shallowClone(retValue) : 
+							AbstractInterceptor.deepClone(retValue)));
 		}
 
 		// given retvalue, deal with pointsto
-		if (retValue != null)
-
-		{
-			HashMap<String,HashMap<String,Object>> ptm = hm.get(threadid);
-			if (ptm.containsKey(retValue)) {
-				return ptm.get(retValue);
-			} else {
-				return retValue;
-			}
+		HashMap<Object, Object> ptm = pointsTo.get(childId);
+		if (ptm != null && ptm.containsKey(retValue)) {
+			return ptm.get(retValue);
+		} else {
+			return retValue;
 		}
-		else
-			throw new InvalidAttributesException();
-
 	}
 
 	public static void setValue(Object value, String owner, String name,
 			String desc) {
 
-		System.out.println("Set value <" + value + ">" + "<" + owner + ">"
-				+ "<" + name + ">" + "<" + desc + ">");
-		int threadid = AbstractInterceptor.getThreadChildId();
-		if (hm.containsKey(threadid)) {
-			HashMap<String, HashMap<String, Object>> classmap = hm
-					.get(threadid);
-			if (classmap.containsKey(owner)) {
-				HashMap<String, Object> fieldmap = classmap.get(owner);
-				fieldmap.put(name, value);
-			} else {
-				HashMap<String, Object> fieldmap = new HashMap<String, Object>();
-				fieldmap.put(name, value);
-				classmap.put(owner, fieldmap);
-			}
-		} else {
-			HashMap<String, HashMap<String, Object>> classmap = new HashMap<String, HashMap<String, Object>>();
-			HashMap<String, Object> fieldmap = new HashMap<String, Object>();
-			fieldmap.put(name, value);
-			classmap.put(owner, fieldmap);
-			hm.put(threadid, classmap);
-		}
-		System.out.println(hm.isEmpty());
+		int childId = AbstractInterceptor.getThreadChildId();
+		if (!hm.containsKey(childId))
+			hm.put(childId, new HashMap<String, HashMap<String,Object>>());
+		if(!hm.get(childId).containsKey(owner))
+			hm.get(childId).put(owner, new HashMap<String, Object>());
+		hm.get(childId).get(owner).put(name, value);
 		return;
+		
 	}
 
-	// TODO implement this method
 	public static void addToPointsToMap(Object origObj, Object newObj,
 			int childID) {
-
+		if (!pointsTo.containsKey(childID))
+			pointsTo.put(childID, new HashMap<Object, Object>());
+		pointsTo.get(childID).put(origObj, newObj);
 	}
 
-	public static String foo;
-
-	public void foo(String in) {
-		// StaticWrapper.getValue("Me", "you", "blah");
-		StaticWrapper.foo = "abcd";
-		// StaticWrapper.setValue("abc", "Me", "you", "blah");
-	}
 
 	// pretty printer
-
 	public static void printFieldMap(HashMap<String, Object> fm, String name) {
 		Set<Entry<String, Object>> fields = fm.entrySet();
 		Iterator<Entry<String, Object>> it = fields.iterator();
