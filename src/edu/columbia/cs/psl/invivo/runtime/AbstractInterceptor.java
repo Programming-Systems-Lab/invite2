@@ -81,11 +81,11 @@ public abstract class AbstractInterceptor {
 		StaticWrapper.cleanupChildInvocation(childId);
 	}
 	
-	protected Method getMethod(String methodName,Class<?>[] params, Class<?> clazz) throws NoSuchMethodException
+	public static Method getMethod(String methodName,Class<?>[] params, Class<?> clazz) throws NoSuchMethodException
 	{
 		return getMethod(methodName, params, clazz, clazz);
 	}
-	protected Method getMethod(String methodName, Class<?>[] params, Class<?> clazz, Class<?> originalClazz) throws NoSuchMethodException
+	public static Method getMethod(String methodName, Class<?>[] params, Class<?> clazz, Class<?> originalClazz) throws NoSuchMethodException
 	{
 		try {
 			for(Method m : clazz.getDeclaredMethods())
@@ -115,7 +115,7 @@ public abstract class AbstractInterceptor {
 			return getMethod(methodName, params, clazz.getSuperclass(),originalClazz);
 		throw new NoSuchMethodException(originalClazz.getCanonicalName() +"."+methodName + "("+ implode(params) + ")");
 	}
-	protected String implode(Object[] array)
+	private static String implode(Object[] array)
 	{
 		StringBuilder ret = new StringBuilder();
 		if(array == null || array.length == 0)
@@ -127,6 +127,26 @@ public abstract class AbstractInterceptor {
 		}
 		return ret.substring(0, ret.length()-2);
 	}
+	public static Method getMethod(String methodName, Class<?> clazz)
+	{
+		try {
+			for(Method m : clazz.getDeclaredMethods())
+			{
+				if(m.getName().equals(methodName))
+				{
+					if(!m.isAccessible())
+							m.setAccessible(true);
+						return m;
+				}
+			}
+		} catch (SecurityException e) {
+			e.printStackTrace();
+		}
+		if(clazz.getSuperclass() != null)
+			return getMethod(methodName, clazz.getSuperclass());
+		return null;
+	}
+	
 	protected Method getMethod(String methodName, String[] types, Class<?> clazz)
 	{
 		try {
