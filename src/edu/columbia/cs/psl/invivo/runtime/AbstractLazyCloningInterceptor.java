@@ -25,6 +25,7 @@ public abstract class AbstractLazyCloningInterceptor extends AbstractInterceptor
 					createdCallees.put(id, inv.callee);
 					if(id > 0)
 					setAsChild(inv.callee,id);
+					System.out.println("Calling " + inv.method);
 					inv.returnValue = inv.method.invoke(inv.callee, inv.params);
 					cleanupChild(id);
 				} catch (SecurityException e) {
