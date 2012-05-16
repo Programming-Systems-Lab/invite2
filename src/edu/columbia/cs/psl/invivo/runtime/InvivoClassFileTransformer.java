@@ -26,7 +26,11 @@ public class InvivoClassFileTransformer implements ClassFileTransformer {
 				ClassReader initialVisitor = new ClassReader(classfileBuffer);
 				initialVisitor.accept(preVisitor,0);
 			}
-
+			
+			TestRunnerGenerator generator = InvivoPreMain.config.getTestRunnerGenerator(preVisitor);
+			if(generator != null)
+				generator.generateTestRunner();
+			
 			ClassReader cr = new ClassReader(classfileBuffer);
 			ClassWriter cw = new ClassWriter(cr, ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES);
 			try {
@@ -40,13 +44,15 @@ public class InvivoClassFileTransformer implements ClassFileTransformer {
 				cr.accept(secondaryVistor, ClassReader.EXPAND_FRAMES);
 			}
 			else
+			{
 				cr.accept(cv, ClassReader.EXPAND_FRAMES);
+			}
+			FileOutputStream fos = new FileOutputStream("debug/" + name + ".class");
+			ByteArrayOutputStream bos = new ByteArrayOutputStream(cw.toByteArray().length);
+			bos.write(cw.toByteArray());
+			bos.writeTo(fos);
+			fos.close();
 			
-				FileOutputStream fos = new FileOutputStream("debug/" + name + ".class");
-				ByteArrayOutputStream bos = new ByteArrayOutputStream(cw.toByteArray().length);
-				bos.write(cw.toByteArray());
-				bos.writeTo(fos);
-				fos.close();
 			} catch (Exception ex) {
 				ex.printStackTrace();
 			}

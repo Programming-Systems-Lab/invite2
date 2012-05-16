@@ -1,6 +1,7 @@
 package edu.columbia.cs.psl.invivo.runtime;
 
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Method;
 
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
@@ -8,7 +9,7 @@ import org.objectweb.asm.Type;
 
 import edu.columbia.cs.psl.invivo.runtime.visitor.BuddyClassVisitor;
 
-public abstract class AbstractConfiguration {
+public abstract class AbstractConfiguration<T extends ClassVisitor> {
 	public String getThreadPrefix()
 	{
 		return "__invivoChild_";
@@ -57,11 +58,16 @@ public abstract class AbstractConfiguration {
 			cachedAnnotationDescriptor = Type.getDescriptor(getAnnotationClass());
 		return cachedAnnotationDescriptor;
 	}
-	public ClassVisitor getPreCV(int api, ClassVisitor cv)
+	public T getPreCV(int api, ClassVisitor cv)
 	{
 		return null;
 	}
 	public ClassVisitor getAdditionalCV(int api, ClassVisitor cv)
+	{
+		return null;
+	}
+	
+	public TestRunnerGenerator<T> getTestRunnerGenerator(T preClassVisitor)
 	{
 		return null;
 	}
