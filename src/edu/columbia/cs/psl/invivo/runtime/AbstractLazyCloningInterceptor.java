@@ -25,6 +25,8 @@ public abstract class AbstractLazyCloningInterceptor extends AbstractInterceptor
 					createdCallees.put(id, inv.callee);
 					if(id > 0)
 					setAsChild(inv.callee,id);
+					if (inv.method == null)
+						throw new NullPointerException();
 					System.out.println("Calling " + inv.method);
 					inv.returnValue = inv.method.invoke(inv.callee, inv.params);
 					cleanupChild(id);
@@ -35,6 +37,8 @@ public abstract class AbstractLazyCloningInterceptor extends AbstractInterceptor
 				} catch (IllegalAccessException e) {
 					e.printStackTrace();
 				} catch (InvocationTargetException e) {
+					e.printStackTrace();
+				} catch (NullPointerException e) {
 					e.printStackTrace();
 				}
 			}
