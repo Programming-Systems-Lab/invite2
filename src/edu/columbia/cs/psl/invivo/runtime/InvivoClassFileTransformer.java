@@ -1,6 +1,7 @@
 package edu.columbia.cs.psl.invivo.runtime;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.FileOutputStream;
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.IllegalClassFormatException;
@@ -47,6 +48,9 @@ public class InvivoClassFileTransformer implements ClassFileTransformer {
 			{
 				cr.accept(cv, ClassReader.EXPAND_FRAMES);
 			}
+			File f = new File("debug/");
+			if (!f.exists())
+				f.mkdir();
 			FileOutputStream fos = new FileOutputStream("debug/" + name + ".class");
 			ByteArrayOutputStream bos = new ByteArrayOutputStream(cw.toByteArray().length);
 			bos.write(cw.toByteArray());
