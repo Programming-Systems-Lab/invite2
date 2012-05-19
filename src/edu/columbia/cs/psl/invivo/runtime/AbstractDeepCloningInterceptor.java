@@ -23,8 +23,8 @@ public abstract class AbstractDeepCloningInterceptor  extends AbstractIntercepto
 			
 			public void run() {
 				try {
-					setAsChild(inv.callee,id);
-					inv.returnValue = inv.method.invoke(inv.callee, inv.params);
+					setAsChild(inv.getCallee(),id);
+					inv.setReturnValue(inv.getMethod().invoke(inv.getCallee(), inv.getParams()));
 					cleanupChild(id);
 				} catch (SecurityException e) {
 					e.printStackTrace();
