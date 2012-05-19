@@ -113,6 +113,7 @@ public class InterceptingMethodVisitor extends AdviceAdapter {
 		storeLocal(refIdForInterceptor);
 		super.onMethodEnter();
 	}
+	
 	private void onMemberMethodEnter()
 	{
 		Label the_method = new Label();

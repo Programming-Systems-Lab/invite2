@@ -9,11 +9,17 @@ public abstract class BuddyClassVisitor<T extends ClassVisitor> extends ClassVis
 	}
 
 	private T buddy;
-	@SuppressWarnings("unchecked")
-	public void setBuddy(Object buddy) {
-		this.buddy = (T) buddy;
+	
+	public void setBuddy(Object preVisitor) {
+		this.buddy =  (T) preVisitor;
 	}
+	
 	public T getBuddy() {
 		return buddy;
+	}
+
+	public void setBuddy(ClassVisitor preVisitor) {
+		// TODO Auto-generated method stub
+		this.buddy = (T) preVisitor;
 	}
 }
