@@ -12,18 +12,26 @@ import edu.columbia.cs.psl.invivo.runtime.InvivoPreMain;
 import edu.columbia.cs.psl.invivo.runtime.NotInstrumented;
 @NotInstrumented
 public class InterceptingClassVisitor extends ClassVisitor implements Opcodes {
+	
 	private String className;
 
+	private boolean isAClass = true;
+	
+	private boolean runIMV = true;
+	
+	private boolean willRewrite = false;
+	
 	public InterceptingClassVisitor(ClassVisitor cv) {
 		super(Opcodes.ASM4, cv);
 	}
-	private boolean isAClass = true;
+	
 	@Override
 	public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
 		super.visit(version, access, name, signature, superName, interfaces);
 		if((access & Opcodes.ACC_INTERFACE) != 0)
 			isAClass = false;
 	}
+	
 	@Override
 	public FieldVisitor visitField(int access, String name, String desc, String signature, Object value) {
 		if(desc.length() > 1)
@@ -31,7 +39,7 @@ public class InterceptingClassVisitor extends ClassVisitor implements Opcodes {
 		
 		return super.visitField(access, name, desc, signature, value);
 	}
-	private boolean runIMV = true;
+	
 	@Override
 	public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
 		if(desc.equals(Type.getDescriptor(InvivoPreMain.config.getProtectorAnnotation())))
@@ -60,11 +68,11 @@ public class InterceptingClassVisitor extends ClassVisitor implements Opcodes {
 
 	
 	//Default to true to make it work for all classes
-	private boolean willRewrite = false;
 	public void setShouldRewrite()
 	{
 		willRewrite = true;
 	}
+	
 	@Override
 	public void visitEnd() {
 		super.visitEnd();
@@ -94,7 +102,12 @@ public class InterceptingClassVisitor extends ClassVisitor implements Opcodes {
 			
 		}
 	}
+	
 	public void setClassName(String name) {
 		this.className = name;
+	}
+	
+	public String getClassName() {
+		return this.className;
 	}
 }

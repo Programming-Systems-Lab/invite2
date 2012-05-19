@@ -26,7 +26,7 @@ public class LazyCloneInterceptingMethodVisitor extends AdviceAdapter {
 		}
 		return super.visitAnnotation(desc, visible);
 	}
-
+	
 	@Override
 	public void visitFieldInsn(int opcode, String owner, String name,
 			String desc) {
