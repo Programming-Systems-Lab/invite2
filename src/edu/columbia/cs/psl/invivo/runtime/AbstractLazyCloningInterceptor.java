@@ -22,13 +22,13 @@ public abstract class AbstractLazyCloningInterceptor extends AbstractInterceptor
 			
 			public void run() {
 				try {
-					createdCallees.put(id, inv.callee);
+					createdCallees.put(id, inv.getCallee());
 					if(id > 0)
-					setAsChild(inv.callee,id);
-					if (inv.method == null)
+					setAsChild(inv.getCallee(),id);
+					if (inv.getMethod() == null)
 						throw new NullPointerException();
-					System.out.println("Calling " + inv.method);
-					inv.returnValue = inv.method.invoke(inv.callee, inv.params);
+					System.out.println("Calling " + inv.getMethod());
+					inv.setReturnValue(inv.getMethod().invoke(inv.getCallee(), inv.getParams()));
 					cleanupChild(id);
 				} catch (SecurityException e) {
 					e.printStackTrace();
