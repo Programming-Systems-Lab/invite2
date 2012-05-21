@@ -10,6 +10,7 @@ public abstract class BuddyClassVisitor<T extends ClassVisitor> extends ClassVis
 
 	private T buddy;
 	
+	@SuppressWarnings("unchecked")
 	public void setBuddy(Object preVisitor) {
 		this.buddy =  (T) preVisitor;
 	}
@@ -18,6 +19,7 @@ public abstract class BuddyClassVisitor<T extends ClassVisitor> extends ClassVis
 		return buddy;
 	}
 
+	@SuppressWarnings("unchecked")
 	public void setBuddy(ClassVisitor preVisitor) {
 		// TODO Auto-generated method stub
 		this.buddy = (T) preVisitor;
