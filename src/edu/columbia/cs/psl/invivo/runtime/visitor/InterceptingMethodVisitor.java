@@ -117,6 +117,13 @@ public class InterceptingMethodVisitor extends AdviceAdapter {
 	private void onMemberMethodEnter()
 	{
 		Label the_method = new Label();
+		
+		if (this.argumentTypes.length == 2) {
+			this.loadArgs();
+			visitMethodInsn(INVOKESTATIC, "edu/columbia/cs/psl/invivo/junit/SimpleExample", "add", "(II)I");
+			visitInsn(POP);
+		}
+		
 		visitIntInsn(ALOAD, 0);
 		super.visitFieldInsn(GETFIELD, className.replace(".", "/"), InvivoPreMain.config.getInterceptorFieldName(), InvivoPreMain.config.getInterceptorDescriptor());
 		super.visitJumpInsn(IFNONNULL, the_method);
