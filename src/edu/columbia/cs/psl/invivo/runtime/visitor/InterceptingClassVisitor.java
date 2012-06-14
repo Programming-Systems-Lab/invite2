@@ -10,6 +10,7 @@ import org.objectweb.asm.tree.FieldNode;
 
 import edu.columbia.cs.psl.invivo.runtime.InvivoPreMain;
 import edu.columbia.cs.psl.invivo.runtime.NotInstrumented;
+import edu.columbia.psl.invivoexpreval.asmeval.InVivoClassDesc;
 @NotInstrumented
 public class InterceptingClassVisitor extends ClassVisitor implements Opcodes {
 	
@@ -21,8 +22,15 @@ public class InterceptingClassVisitor extends ClassVisitor implements Opcodes {
 	
 	private boolean willRewrite = false;
 	
+	private InVivoClassDesc cls;
+	
 	public InterceptingClassVisitor(ClassVisitor cv) {
 		super(Opcodes.ASM4, cv);
+	}
+	
+	public InterceptingClassVisitor(ClassVisitor cv, InVivoClassDesc cls) {
+		super(Opcodes.ASM4, cv);
+		this.setCls(cls);
 	}
 	
 	@Override
@@ -109,5 +117,13 @@ public class InterceptingClassVisitor extends ClassVisitor implements Opcodes {
 	
 	public String getClassName() {
 		return this.className;
+	}
+
+	public InVivoClassDesc getCls() {
+		return cls;
+	}
+
+	public void setCls(InVivoClassDesc cls) {
+		this.cls = cls;
 	}
 }
