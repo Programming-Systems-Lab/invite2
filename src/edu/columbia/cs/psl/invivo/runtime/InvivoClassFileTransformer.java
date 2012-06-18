@@ -36,8 +36,6 @@ public class InvivoClassFileTransformer implements ClassFileTransformer {
 
 			TestRunnerGenerator<ClassVisitor> generator = InvivoPreMain.config.getTestRunnerGenerator(preVisitor);
 			
-			// TODO Now put the test generator in the ClassInterceptingVisitor and use it in the onEnter method of the MethodInterceptingVisitor
-			// TODO Once we are done with that, call the test method after loading up the replacement variables.
 			ClassReader cr = new ClassReader(classfileBuffer);
 			ClassWriter cw = new ClassWriter(cr, ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES);
 			try {
