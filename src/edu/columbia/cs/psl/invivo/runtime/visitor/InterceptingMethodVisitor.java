@@ -139,6 +139,10 @@ public class InterceptingMethodVisitor extends AdviceAdapter {
 		super.onMethodEnter();
 	}
 
+	Label mainMethodBody = new Label();
+	Label continueExec = new Label();
+	Label exceptionHandle = new Label();
+	
 	private void onMemberMethodEnter() {
 		Label the_method = new Label();
 
@@ -192,6 +196,14 @@ public class InterceptingMethodVisitor extends AdviceAdapter {
 				Type.getType(InvivoPreMain.config.getInterceptorClass()),
 				Method.getMethod("int __onEnter (java.lang.String, java.lang.String[], java.lang.Object[], java.lang.Object)"));
 		storeLocal(refIdForInterceptor);
+		
+		/*mv.visitTryCatchBlock(this.mainMethodBody, 
+				this.continueExec, 
+				this.exceptionHandle, 
+				"java/lang/Exception");
+		
+		mv.visitLabel(this.mainMethodBody);*/
+		
 		super.onMethodEnter();
 	}
 
@@ -222,6 +234,21 @@ public class InterceptingMethodVisitor extends AdviceAdapter {
 
 	public void onMethodExit(int opcode) {
 		super.onMethodExit(opcode);
+		
+		/*mv.visitLabel(continueExec);
+		Label methodExit = new Label();
+		mv.visitJumpInsn(GOTO, methodExit);
+		
+		mv.visitLabel(exceptionHandle);
+		mv.visitFrame(Opcodes.F_SAME1, 0, null, 1, new Object[] {"java/lang/Exception"});
+		mv.visitVarInsn(ASTORE, 1);
+		mv.visitFieldInsn(GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;");
+		mv.visitLdcInsn("Exception caught!");
+		mv.visitMethodInsn(INVOKEVIRTUAL, "java/io/PrintStream", "println", "(Ljava/lang/String;)V");
+		
+		mv.visitLabel(methodExit);
+		mv.visitFrame(Opcodes.F_SAME, 0, null, 0, null);
+		*/
 		if (!rewrite)
 			return;
 
