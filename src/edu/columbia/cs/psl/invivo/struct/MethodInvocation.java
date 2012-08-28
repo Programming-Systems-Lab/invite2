@@ -15,23 +15,23 @@ public class MethodInvocation implements Serializable
 {
 	private static final long serialVersionUID = -2038681047970130055L;
 	
-	private Object callee;
+	public Object callee;
 	
-	private Method method;
+	public Method method;
 	
-	private Object[] params;
+	public Object[] params;
 	
-	private Object returnValue;
+	public Object returnValue;
 	
-	private Exception thrownExceptions;
+	public Exception thrownExceptions;
 	
-	private Thread thread;
+	public Thread thread;
 	
-	private MethodInvocation[] children;
+	public MethodInvocation[] children;
 	
-	private Method checkMethod;
+	public Method checkMethod;
 	
-	private MethodInvocation parent;
+	public MethodInvocation parent;
 		
 	@Override
 	public String toString() {
