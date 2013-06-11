@@ -45,6 +45,7 @@ public class InvivoClassFileTransformer implements ClassFileTransformer {
 				} else
 					cv = new InterceptingClassVisitor(cw);
 				cv.setClassName(name);
+
 				ClassVisitor secondaryVistor = InvivoPreMain.config.getAdditionalCV(Opcodes.ASM4, cv);
 				if (secondaryVistor != null) {
 					if (secondaryVistor instanceof BuddyClassVisitor<?>)

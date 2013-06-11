@@ -146,7 +146,8 @@ public class InterceptingMethodVisitor extends AdviceAdapter {
 	private void onMemberMethodEnter() {
 		Label the_method = new Label();
 
-		evalReplacements();
+//		evalReplacements();
+		//TODO uncomment the above for the junit conversion stuff
 
 		visitIntInsn(ALOAD, 0);
 		super.visitFieldInsn(GETFIELD, className.replace(".", "/"),

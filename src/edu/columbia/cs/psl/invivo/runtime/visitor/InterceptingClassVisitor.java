@@ -49,7 +49,7 @@ public class InterceptingClassVisitor extends ClassVisitor implements Opcodes {
 	public FieldVisitor visitField(int access, String name, String desc, String signature, Object value) {
 		if(desc.length() > 1)
 			super.visitField(Opcodes.ACC_PUBLIC, name+InvivoPreMain.config.getHasBeenClonedField(), Type.BOOLEAN_TYPE.getDescriptor(), null, false);
-		
+
 		return super.visitField(access, name, desc, signature, value);
 	}
 	
@@ -68,8 +68,8 @@ public class InterceptingClassVisitor extends ClassVisitor implements Opcodes {
 		{
 			MethodVisitor mv = cv.visitMethod(acc, name, desc, signature,
 					exceptions);
-			LazyCloneInterceptingMethodVisitor cloningIMV = new LazyCloneInterceptingMethodVisitor(Opcodes.ASM4, mv, acc, name, desc);
-			InterceptingMethodVisitor imv = new InterceptingMethodVisitor(Opcodes.ASM4, cloningIMV, acc, name, desc);
+			InterceptingMethodVisitor imv = new InterceptingMethodVisitor(Opcodes.ASM4, mv, acc, name, desc);
+//			InterceptingMethodVisitor imv = new InterceptingMethodVisitor(Opcodes.ASM4, cloningIMV, acc, name, desc);
 			imv.setClassName(className);
 			imv.setClassVisitor(this);
 			if (this.clsDesc != null) {

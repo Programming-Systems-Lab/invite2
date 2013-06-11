@@ -1,9 +1,14 @@
 package edu.columbia.cs.psl.invivo.runtime;
 
+
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.rits.cloning.Cloner;
+
+import edu.columbia.cs.psl.invivo.struct.MethodInvocation;
 
 @NotInstrumented
 public abstract class AbstractInterceptor {
@@ -33,7 +38,12 @@ public abstract class AbstractInterceptor {
 					e);
 		}
 	}
-
+	public static Object getRootCallee()
+	{
+		return createdCallees.get(getThreadChildId());
+	}
+	private static HashMap<Integer, Object> createdCallees = new HashMap<Integer, Object>();
+	
 	protected boolean isChild(Object callee) {
 		if (callee == null || callee.getClass().equals(Class.class))
 			return false;
@@ -47,6 +57,41 @@ public abstract class AbstractInterceptor {
 					e);
 		}
 	}
+	
+	protected Thread createRunnerThread(final MethodInvocation inv, boolean isChild)
+	{
+			final int id = (isChild ? nextId.getAndIncrement() : 0);
+		return new Thread(new ThreadGroup(InvivoPreMain.config.getThreadPrefix()+id),new Runnable() {		
+			
+			public void run() {
+				try {
+					createdCallees.put(id, inv.getCallee());
+					if(id > 0)
+					setAsChild(inv.getCallee(),id);
+					if (inv.getMethod() == null)
+						throw new NullPointerException();
+					System.out.println("Calling " + inv.getMethod());
+					inv.setReturnValue(inv.getMethod().invoke(inv.getCallee(), inv.getParams()));
+					cleanupChild(id);
+				} catch (SecurityException e) {
+					e.printStackTrace();
+				} catch (IllegalArgumentException e) {
+					e.printStackTrace();
+				} catch (IllegalAccessException e) {
+					e.printStackTrace();
+				} catch (InvocationTargetException e) {
+					e.printStackTrace();
+				} catch (NullPointerException e) {
+					e.printStackTrace();
+				}
+			}
+		},InvivoPreMain.config.getThreadPrefix()+id);
+	}
+	protected Thread createChildThread(MethodInvocation inv)
+	{
+		return createRunnerThread(inv, true);
+	}
+
 
 	/**
 	 * Gets the child ID for the thread calling If this thread is directly a
@@ -90,6 +135,8 @@ public abstract class AbstractInterceptor {
 
 	protected void cleanupChild(int childId) {
 		StaticWrapper.cleanupChildInvocation(childId);
+		createdCallees.remove(childId);
+
 	}
 
 	public static Method getMethod(String methodName, Class<?>[] params,
