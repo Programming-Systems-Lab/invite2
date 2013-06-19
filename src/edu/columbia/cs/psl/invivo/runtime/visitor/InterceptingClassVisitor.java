@@ -8,9 +8,14 @@ import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.type.TypeKind;
+import javax.lang.model.type.TypeMirror;
+
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.FieldVisitor;
+import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
@@ -177,32 +182,91 @@ public class InterceptingClassVisitor extends ClassVisitor implements Opcodes {
 						{
 							String test = null;
 							String check = null;
-							if(a1.values.get(0).equals("test"))
+							String checkMethod = "==";
+							for(int i = 0; i < a1.values.size(); i++)
 							{
-								test = (String) a1.values.get(1);
-								check = (String) a1.values.get(3);
+								if(a1.values.get(i).equals("test"))
+									test = (String) a1.values.get(i+1);
+								else if(a1.values.get(i).equals("check"))
+									check = (String) a1.values.get(i+1);
+								else if(a1.values.get(i).equals("checkMethod"))
+									checkMethod = (String) a1.values.get(i+1);
+								i++;
 							}
-							else{
-								test = (String) a1.values.get(3);
-								check = (String) a1.values.get(1);
+							System.out.println("Test: <"+test+"> check: <" + check+"> method:<"+checkMethod+">");
+							{
+								MethodVisitor mv = this.visitMethod(mn.access, mn.name
+										+ "_test"+nTests, mn.desc, null, null);
+								GeneratorAdapter gmv = new GeneratorAdapter(mv, mn.access,
+										mn.name + "_test"+nTests, mn.desc);
+
+								gmv.visitCode();
+								Label start = new Label();
+								gmv.visitLabel(start);
+
+								
+								InVivoAsmEval eval = new InVivoAsmEval();
+								Pattern p = Pattern.compile("\\\\([^(]+)\\(");
+								Matcher m = p.matcher(test);
+								test = m.replaceAll("new edu.columbia.cs.psl.metamorphic.inputProcessor.impl.$1().apply((java.lang.Object)");
+								System.out.println(test);
+								eval.emitMetamorphicTest(test,gmv, mn.access, mn.name+ "_test"+nTests, mn.desc,clsDesc,testedMethods.get(mn));
+								Label end = new Label();
+								gmv.visitLabel(end);
+
+								gmv.returnValue();
+								gmv.visitMaxs(0, 0);
+								for(LocalVariableNode lv : testedMethods.get(mn))
+									if(!lv.name.equals("this"))
+									gmv.visitLocalVariable(lv.name, lv.desc, null, start, end, lv.index);
+
+								gmv.visitEnd();
+								
 							}
-							MethodVisitor mv = this.visitMethod(mn.access, mn.name
-									+ "_test"+nTests, mn.desc, null, null);
-							GeneratorAdapter gmv = new GeneratorAdapter(mv, mn.access,
-									mn.name + "_test"+nTests, mn.desc);
+							{
+								String returnType = Type.getReturnType(mn.desc).getDescriptor();
+								String desc = "("+returnType+returnType;
+								for(Type t : Type.getArgumentTypes(mn.desc))
+								{
+									desc += t.getDescriptor();
+								}
+								desc += ")Z";
+								MethodVisitor mv = this.visitMethod(mn.access, mn.name
+										+ "_check"+nTests, desc, null, null);
+								GeneratorAdapter gmv = new GeneratorAdapter(mv, mn.access,
+										mn.name + "_check"+nTests, desc);
 
-							gmv.visitCode();
-							InVivoAsmEval eval = new InVivoAsmEval();
-							Pattern p = Pattern.compile("\\\\([^(]+)\\(");
-							Matcher m = p.matcher(test);
-							test = m.replaceAll("new edu.columbia.cs.psl.metamorphic.inputProcessor.impl.$1().apply((java.lang.Object)");
-							System.out.println(test);
-							eval.emitMetamorphicTest(test,gmv, mn.access, mn.name+ "_test"+nTests, mn.desc,clsDesc,testedMethods.get(mn));
-
-							gmv.returnValue();
-							gmv.visitMaxs(0, 0);
-							gmv.visitEnd();
-							
+								gmv.visitCode();
+								Label start = new Label();
+								gmv.visitLabel(start);
+								InVivoAsmEval eval = new InVivoAsmEval();
+								check = formatRuleCheck(check,checkMethod,Type.getReturnType(mn.desc));
+								System.out.println(check);
+								ArrayList<LocalVariableNode> checkArgs = new ArrayList<>();
+								int offset = 0;
+								if((mn.access  & Opcodes.ACC_STATIC) == 0)
+								{
+									checkArgs.add(new LocalVariableNode("this", className.replace(".", "/"), null, null, null, 0));
+									offset++;
+								}
+								checkArgs.add(new LocalVariableNode("orig", returnType, null, null, null, 0+offset));
+								checkArgs.add(new LocalVariableNode("metamorphic", returnType, null, null, null, 1+offset));
+								for(LocalVariableNode ln : testedMethods.get(mn))
+								{
+									if(!ln.name.equals("this"))
+									checkArgs.add(new LocalVariableNode(ln.name, ln.desc, ln.signature, ln.start, ln.end, ln.index+2));
+								}
+								eval.emitMetamorphicTest(check,gmv, mn.access, mn.name+ "_check"+nTests, desc,clsDesc,checkArgs);
+								Label end = new Label();
+								gmv.visitLabel(end);
+								gmv.returnValue();
+								gmv.visitMaxs(0, 0);
+								for(LocalVariableNode lv : checkArgs)
+									if(!lv.name.equals("this"))
+									gmv.visitLocalVariable(lv.name, lv.desc, null, start, end, lv.index);
+								gmv.visitEnd();
+								
+							}
 							nTests++;
 						}
 					}
@@ -213,6 +277,71 @@ public class InterceptingClassVisitor extends ClassVisitor implements Opcodes {
 		} catch (Exception ex) {
 			ex.printStackTrace();
 		}
+	}
+	private static String getBoxedType(Type type) {
+        if(type.getDescriptor().equals("I"))
+            return "java/lang/Integer";
+        else if(type.getDescriptor().equals("B"))
+            return "java/lang/Byte";
+        else if(type.getDescriptor().equals("Z"))
+            return "java/lang/Boolean";
+        else if(type.getDescriptor().equals("S"))
+            return "java/lang/Short";
+        else if(type.getDescriptor().equals("C"))
+            return "java/lang/Char";
+        else if(type.getDescriptor().equals("F"))
+            return "java/lang/Float";
+        else if(type.getDescriptor().equals("J"))
+            return "java/lang/Long";
+        else if(type.getDescriptor().equals("D"))
+            return "java/lang/Double";
+        return null;
+    }
+
+	private String formatRuleCheck(String checkStr, String checkMethod, Type returnType) throws Exception {
+
+		Pattern p = Pattern.compile("\\\\([^(]+)\\(");
+		Matcher m = p.matcher(checkStr);
+		boolean returnIsPrimitive = returnType.getDescriptor().length() == 1 ;
+		if(m.find())
+		{
+			checkStr = (returnIsPrimitive ? getBoxedType(returnType) + ".valueOf((" + getBoxedType(returnType) + ")" : "" ) + 
+					m.replaceAll("new edu.columbia.cs.psl.metamorphic.inputProcessor.impl.$1().apply((Object) " );
+			if(returnIsPrimitive)
+				checkStr =  checkStr + ")";
+			m.reset(checkStr);
+		}
+		
+		checkStr = checkStr.replace("\\result", "orig");
+		if (checkMethod.equals("==") || checkMethod.equals(">=") || checkMethod.equals("<=") || checkMethod.equals("<")
+				|| checkMethod.equals(">") || checkMethod.equals("!=")) {
+			if (returnIsPrimitive)
+				if(returnType.getSort() == Type.DOUBLE && checkMethod.equals("=="))
+					checkStr = "edu.columbia.cs.psl.metamorphic.outputRelation.impl.ApproximatelyEqualTo.applies(metamorphic,"+ checkStr + ",0.000001)";
+				else
+					checkStr = "metamorphic " + checkMethod + " " + checkStr;
+			else if(returnType.getSort() == Type.ARRAY)
+			{
+				if (checkMethod.equals("!="))
+					checkStr = "! java.util.Arrays.equals(metamorphic, (" + returnType.toString() + ")" + checkStr + ")";
+				else if (checkMethod.equals("=="))
+					checkStr = "java.util.Arrays.equals(metamorphic,(" + returnType.toString() + ")" + checkStr + ")";
+				else {
+						checkStr = "metamorphic.compareTo(" + checkStr + ") " + checkMethod + " 0";
+				}
+			}
+			else {
+				if (checkMethod.equals("!="))
+					checkStr = "! metamorphic.equals(" + checkStr + ")";
+				else if (checkMethod.equals("=="))
+					checkStr = "metamorphic.equals(" + checkStr + ")";
+				else {
+						checkStr = "metamorphic.compareTo(" + checkStr + ") " + checkMethod + " 0";
+				}
+			}
+		}
+		
+		return checkStr;
 	}
 
 	public void setClassName(String name) {
