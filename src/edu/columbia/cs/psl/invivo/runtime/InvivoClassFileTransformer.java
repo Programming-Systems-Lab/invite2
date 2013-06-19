@@ -12,6 +12,7 @@ import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.tree.ClassNode;
 
 import edu.columbia.cs.psl.invivo.runtime.visitor.BuddyClassVisitor;
 import edu.columbia.cs.psl.invivo.runtime.visitor.InterceptingClassVisitor;
@@ -19,11 +20,16 @@ import edu.columbia.cs.psl.invivo.runtime.visitor.InterceptingClassVisitor;
 @NotInstrumented
 public class InvivoClassFileTransformer implements ClassFileTransformer {
 	private static Logger	logger	= Logger.getLogger(InvivoClassFileTransformer.class);
-
+	public static ClassNode currentClassNode;
+	
 	public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain,
 			byte[] classfileBuffer) throws IllegalClassFormatException {
 		String name = className.replace("/", ".");
 		if (!name.startsWith("java")) {
+			
+			currentClassNode = new ClassNode();
+			ClassReader cncr = new ClassReader(classfileBuffer);
+			cncr.accept(currentClassNode, ClassReader.SKIP_CODE);
 			ClassVisitor preVisitor = InvivoPreMain.config.getPreCV(Opcodes.ASM4, null);
 			if (preVisitor != null) {
 				try {
@@ -63,7 +69,7 @@ public class InvivoClassFileTransformer implements ClassFileTransformer {
 				bos.writeTo(fos);
 				fos.close();
 
-			} catch (Exception ex) {
+			} catch (Throwable ex) {
 				logger.error("Error generating modified class " + name, ex);
 			}
 			return cw.toByteArray();

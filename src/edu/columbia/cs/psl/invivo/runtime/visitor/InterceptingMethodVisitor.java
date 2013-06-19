@@ -1,5 +1,7 @@
 package edu.columbia.cs.psl.invivo.runtime.visitor;
 
+import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
 
@@ -10,7 +12,11 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.commons.AdviceAdapter;
 import org.objectweb.asm.commons.Method;
+import org.objectweb.asm.tree.AnnotationNode;
+import org.objectweb.asm.tree.LocalVariableNode;
+import org.objectweb.asm.tree.MethodNode;
 
+import edu.columbia.cs.psl.invivo.runtime.AbstractInterceptor;
 import edu.columbia.cs.psl.invivo.runtime.InvivoPreMain;
 import edu.columbia.psl.invivoexpreval.asmeval.InVivoAsmEval;
 import edu.columbia.psl.invivoexpreval.asmeval.InVivoMethodDesc;
@@ -25,12 +31,21 @@ public class InterceptingMethodVisitor extends AdviceAdapter {
 
 	private int access;
 
+	private int lastArgIdx = 0;
+	
+	MethodNode thisMN = new MethodNode();
 	protected InterceptingMethodVisitor(int api, MethodVisitor mv, int access,
 			String name, String desc) {
 		super(api, mv, access, name, desc);
 		this.name = name;
 		this.access = access;
 		this.argumentTypes = Type.getArgumentTypes(desc);
+		thisMN.name = name;
+		thisMN.access = access;
+		thisMN.desc = desc;
+		thisMN.visibleAnnotations = new LinkedList<AnnotationNode>();
+		lastArgIdx = Type.getArgumentTypes(desc).length;
+		if((access & Opcodes.ACC_STATIC) != 0) lastArgIdx++;
 	}
 
 	boolean rewrite = false;
@@ -41,6 +56,8 @@ public class InterceptingMethodVisitor extends AdviceAdapter {
 			classVisitor.setShouldRewrite();
 			rewrite = true;
 		}
+		AnnotationNode an = new AnnotationNode(desc);
+		thisMN.visibleAnnotations.add(an);
 		return super.visitAnnotation(desc, visible);
 	}
 
@@ -81,28 +98,34 @@ public class InterceptingMethodVisitor extends AdviceAdapter {
 		else
 			super.visitFieldInsn(opcode, owner, name, desc);
 	}
-
+	private ArrayList<LocalVariableNode> lvs = new ArrayList<>();
+	@Override
+	public void visitLocalVariable(String name, String desc, String signature,
+			Label start, Label end, int index) {
+		super.visitLocalVariable(name, desc, signature, start, end, index);
+		if(index <= lastArgIdx)
+			lvs.add(new LocalVariableNode(name, desc, signature, null, null, index));
+	}
 	private void onStaticMethodEnter() {
 		Label the_method = new Label();
 
 		super.visitFieldInsn(GETSTATIC, className.replace(".", "/"),
 				InvivoPreMain.config.getStaticInterceptorFieldName(),
-				InvivoPreMain.config.getInterceptorDescriptor());
+				Type.getDescriptor(InvivoPreMain.config.getInterceptorClass()));
 		super.visitJumpInsn(IFNONNULL, the_method);
 
+		String interceptorType = InvivoPreMain.config.getTestCaseNameGenerator().getTestCaseClassName(this.className, thisMN);
 		// Initialize a new interceptor with the class as the intercepted object
-		visitTypeInsn(NEW, InvivoPreMain.config.getInterceptorClass().getName()
-				.replace(".", "/"));
+		visitTypeInsn(NEW, interceptorType);
 		dup();
 		visitLdcInsn(className);
 		visitMethodInsn(INVOKESTATIC, "java/lang/Class", "forName",
 				"(Ljava/lang/String;)Ljava/lang/Class;");
-		visitMethodInsn(INVOKESPECIAL, InvivoPreMain.config
-				.getInterceptorClass().getName().replace(".", "/"), "<init>",
+		visitMethodInsn(INVOKESPECIAL, interceptorType, "<init>",
 				"(Ljava/lang/Object;)V");
 		super.visitFieldInsn(PUTSTATIC, className.replace(".", "/"),
 				InvivoPreMain.config.getStaticInterceptorFieldName(),
-				InvivoPreMain.config.getInterceptorDescriptor());
+				Type.getDescriptor(InvivoPreMain.config.getInterceptorClass()));
 
 		visitLabel(the_method);
 
@@ -110,7 +133,7 @@ public class InterceptingMethodVisitor extends AdviceAdapter {
 
 		super.visitFieldInsn(GETSTATIC, className.replace(".", "/"),
 				InvivoPreMain.config.getStaticInterceptorFieldName(),
-				InvivoPreMain.config.getInterceptorDescriptor());
+				Type.getDescriptor(InvivoPreMain.config.getInterceptorClass()));
 		visitLdcInsn(name);
 
 		push(argumentTypes.length);
@@ -133,7 +156,7 @@ public class InterceptingMethodVisitor extends AdviceAdapter {
 		visitMethodInsn(INVOKESTATIC, "java/lang/Class", "forName",
 				"(Ljava/lang/String;)Ljava/lang/Class;");
 		invokeVirtual(
-				Type.getType(InvivoPreMain.config.getInterceptorClass()),
+				Type.getType("L"+interceptorType+";"),
 				Method.getMethod("int __onEnter (java.lang.String, java.lang.String[], java.lang.Object[], java.lang.Object)"));
 		storeLocal(refIdForInterceptor);
 		super.onMethodEnter();
@@ -148,23 +171,22 @@ public class InterceptingMethodVisitor extends AdviceAdapter {
 
 //		evalReplacements();
 		//TODO uncomment the above for the junit conversion stuff
+		String interceptorType = InvivoPreMain.config.getTestCaseNameGenerator().getTestCaseClassName(this.className, thisMN);
 
 		visitIntInsn(ALOAD, 0);
 		super.visitFieldInsn(GETFIELD, className.replace(".", "/"),
 				InvivoPreMain.config.getInterceptorFieldName(),
-				InvivoPreMain.config.getInterceptorDescriptor());
+				Type.getDescriptor(InvivoPreMain.config.getInterceptorClass()));
 		super.visitJumpInsn(IFNONNULL, the_method);
 		visitIntInsn(ALOAD, 0);
-		visitTypeInsn(NEW, InvivoPreMain.config.getInterceptorClass().getName()
-				.replace(".", "/"));
+		visitTypeInsn(NEW, interceptorType);
 		dup();
 		loadThis();
-		visitMethodInsn(INVOKESPECIAL, InvivoPreMain.config
-				.getInterceptorClass().getName().replace(".", "/"), "<init>",
+		visitMethodInsn(INVOKESPECIAL, interceptorType, "<init>",
 				"(Ljava/lang/Object;)V");
 		super.visitFieldInsn(PUTFIELD, className.replace(".", "/"),
 				InvivoPreMain.config.getInterceptorFieldName(),
-				InvivoPreMain.config.getInterceptorDescriptor());
+				Type.getDescriptor(InvivoPreMain.config.getInterceptorClass()));
 
 		visitLabel(the_method);
 
@@ -173,7 +195,7 @@ public class InterceptingMethodVisitor extends AdviceAdapter {
 		visitIntInsn(ALOAD, 0);
 		super.visitFieldInsn(GETFIELD, className.replace(".", "/"),
 				InvivoPreMain.config.getInterceptorFieldName(),
-				InvivoPreMain.config.getInterceptorDescriptor());
+				Type.getDescriptor(InvivoPreMain.config.getInterceptorClass()));
 		visitLdcInsn(name);
 
 		push(argumentTypes.length);
@@ -194,7 +216,7 @@ public class InterceptingMethodVisitor extends AdviceAdapter {
 		loadArgArray();
 		loadThis();
 		invokeVirtual(
-				Type.getType(InvivoPreMain.config.getInterceptorClass()),
+				Type.getType(AbstractInterceptor.class),
 				Method.getMethod("int __onEnter (java.lang.String, java.lang.String[], java.lang.Object[], java.lang.Object)"));
 		storeLocal(refIdForInterceptor);
 		
@@ -327,5 +349,10 @@ public class InterceptingMethodVisitor extends AdviceAdapter {
 			Entry<InVivoMethodDesc, List<InVivoVariableReplacement>> mDesc) {
 		this.mDesc = mDesc;
 	}
-
+	@Override
+	public void visitEnd() {
+		super.visitEnd();
+		if(rewrite)
+			this.classVisitor.addTestedMethod(thisMN,lvs);
+	}
 }

@@ -30,6 +30,8 @@ public abstract class AbstractConfiguration<T extends ClassVisitor> {
 	
 	public abstract Class<? extends Annotation> getAnnotationClass();
 	
+	public abstract TestcaseNameGenerator getTestCaseNameGenerator();
+	
 	public Class<? extends Annotation> getProtectorAnnotation()
 	{
 		return NotInstrumented.class;

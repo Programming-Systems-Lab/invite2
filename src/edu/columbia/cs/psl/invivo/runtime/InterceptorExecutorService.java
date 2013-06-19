@@ -1,7 +1,6 @@
 package edu.columbia.cs.psl.invivo.runtime;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
 
 public class InterceptorExecutorService {
 
@@ -12,32 +11,17 @@ public class InterceptorExecutorService {
 
 	private static final int MAX_THREADS = 20;
 
-	private List<Long> tids = new ArrayList<Long>();
+	private HashSet<Long> tids = new HashSet<Long>();
 
 	public synchronized void insertThis(long tid) {
-		for (Long t : tids) {
-			if (t == tid) {
-				System.out.println("Identical name found");
-				return;
-			}
-		}
 		tids.add(tid);
 	}
 
 	public synchronized boolean isRunning(long tid) {
-		for (Long t : tids) {
-			if (t == tid)
-				return true;
-		}
-		return false;
+		return tids.contains(tid);
 	}
 
 	public synchronized void remove(Long tid) {
-		for (Long t : tids) {
-			if (t == tid) {
-				tids.remove(t);
-				break;
-			}
-		}
+		tids.remove(tid);
 	}
 }
