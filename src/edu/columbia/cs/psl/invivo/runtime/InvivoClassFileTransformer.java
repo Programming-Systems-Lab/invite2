@@ -12,7 +12,9 @@ import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.tree.AnnotationNode;
 import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.MethodNode;
 
 import edu.columbia.cs.psl.invivo.runtime.visitor.BuddyClassVisitor;
 import edu.columbia.cs.psl.invivo.runtime.visitor.InterceptingClassVisitor;
@@ -27,9 +29,27 @@ public class InvivoClassFileTransformer implements ClassFileTransformer {
 		String name = className.replace("/", ".");
 		if (!name.startsWith("java")) {
 			
+			System.out.println(className);
+			boolean found = false;
 			currentClassNode = new ClassNode();
 			ClassReader cncr = new ClassReader(classfileBuffer);
 			cncr.accept(currentClassNode, ClassReader.SKIP_CODE);
+			for(Object o : currentClassNode.methods)
+			{
+				MethodNode mn = (MethodNode) o;
+				if( mn.visibleAnnotations != null)
+				for(Object oa : mn.visibleAnnotations)
+				{
+					AnnotationNode an = (AnnotationNode) oa;
+					if(an.desc.equals(InvivoPreMain.config.getAnnotationDescriptor()))
+						found = true;
+				}
+			}
+			if(!found)
+			{
+				return classfileBuffer;
+				
+			}
 			ClassVisitor preVisitor = InvivoPreMain.config.getPreCV(Opcodes.ASM4, null);
 			if (preVisitor != null) {
 				try {

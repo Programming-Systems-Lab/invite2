@@ -3,6 +3,7 @@ package edu.columbia.cs.psl.invivo.struct;
 import java.io.Serializable;
 import java.lang.reflect.Method;
 
+import edu.columbia.cs.psl.invivo.runtime.Interceptable;
 import edu.columbia.cs.psl.invivo.runtime.NotInstrumented;
 
 /**
@@ -15,10 +16,8 @@ public class MethodInvocation implements Serializable
 {
 	private static final long serialVersionUID = -2038681047970130055L;
 	
-	public Object callee;
-	
-	public Method method;
-	
+	public Interceptable callee;
+		
 	public Object[] params;
 	
 	public Object returnValue;
@@ -28,11 +27,19 @@ public class MethodInvocation implements Serializable
 	public Thread thread;
 	
 	public MethodInvocation[] children;
-	
-	public Method checkMethod;
-	
-	public MethodInvocation parent;
 		
+	public MethodInvocation parent;
+
+	public int idx;
+
+	protected int methodIdx;
+
+	public int getMethodIdx() {
+		return methodIdx;
+	}
+	public void setMethodIdx(int methodIdx) {
+		this.methodIdx = methodIdx;
+	}
 	@Override
 	public String toString() {
 		StringBuilder paramStr = new StringBuilder();
@@ -49,7 +56,7 @@ public class MethodInvocation implements Serializable
 				childStr.append(i.toString() + ",");
 		}
 		
-		return "[Invocation on method "+ (method == null ? "null" : method.getName()) + " with params " + paramStr.toString() + " returning " + getReturnValue() +" on object " + callee +".  Children: ["+childStr.toString()+"] ]";
+		return "[Invocation on method  with params " + paramStr.toString() + " returning " + getReturnValue() +" on object " + callee +".  Children: ["+childStr.toString()+"] ]";
 	}
 
 
@@ -72,17 +79,6 @@ public class MethodInvocation implements Serializable
 		this.thread = thread;
 	}
 
-
-	public Method getCheckMethod() {
-		return checkMethod;
-	}
-
-
-	public void setCheckMethod(Method checkMethod) {
-		this.checkMethod = checkMethod;
-	}
-
-
 	public MethodInvocation getParent() {
 		return parent;
 	}
@@ -91,20 +87,12 @@ public class MethodInvocation implements Serializable
 		this.parent = parent;
 	}
 	
-	public Object getCallee() {
+	public Interceptable getCallee() {
 		return this.callee;
 	}
 	
-	public void setCallee(Object c) {
+	public void setCallee(Interceptable c) {
 		this.callee = c;
-	}
-	
-	public Method getMethod() {
-		return this.method;
-	}
-	
-	public void setMethod(Method m) {
-		this.method = m;
 	}
 
 	public Object[] getParams() {

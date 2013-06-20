@@ -12,18 +12,18 @@ import edu.columbia.cs.psl.invivo.struct.MethodInvocation;
 
 @NotInstrumented
 public abstract class AbstractInterceptor {
-	private Object interceptedObject;
+	private Interceptable interceptedObject;
 	private static ThreadLocal<Integer> childId = new ThreadLocal<Integer>() {
 		protected Integer initialValue() {
 			return 0;
 		};
 	};
 
-	public AbstractInterceptor(Object intercepted) {
+	public AbstractInterceptor(Interceptable intercepted) {
 		this.interceptedObject = intercepted;
 	}
 
-	public Object getInterceptedObject() {
+	public Interceptable getInterceptedObject() {
 		return interceptedObject;
 	}
 
@@ -38,11 +38,11 @@ public abstract class AbstractInterceptor {
 					e);
 		}
 	}
-	public static Object getRootCallee()
+	public static Interceptable getRootCallee()
 	{
 		return createdCallees.get(getThreadChildId());
 	}
-	private static HashMap<Integer, Object> createdCallees = new HashMap<Integer, Object>();
+	private static HashMap<Integer, Interceptable> createdCallees = new HashMap<Integer, Interceptable>();
 	
 	protected boolean isChild(Object callee) {
 		if (callee == null || callee.getClass().equals(Class.class))
@@ -68,18 +68,12 @@ public abstract class AbstractInterceptor {
 					createdCallees.put(id, inv.getCallee());
 					if(id > 0)
 					setAsChild(inv.getCallee(),id);
-					if (inv.getMethod() == null)
-						throw new NullPointerException();
-					System.out.println("Calling " + inv.getMethod());
-					inv.setReturnValue(inv.getMethod().invoke(inv.getCallee(), inv.getParams()));
+					
+					inv.setReturnValue(inv.getCallee().runTest(inv.getMethodIdx(),inv.idx,inv.getCallee(), inv.getParams()));
 					cleanupChild(id);
 				} catch (SecurityException e) {
 					e.printStackTrace();
 				} catch (IllegalArgumentException e) {
-					e.printStackTrace();
-				} catch (IllegalAccessException e) {
-					e.printStackTrace();
-				} catch (InvocationTargetException e) {
 					e.printStackTrace();
 				} catch (NullPointerException e) {
 					e.printStackTrace();
@@ -253,12 +247,13 @@ public abstract class AbstractInterceptor {
 		onExit(val, op, id);
 	}
 
-	public final int __onEnter(String methodName, String[] types,
-			Object[] params, Object callee) {
-		return onEnter(callee, getCurMethod(methodName, types), params);
+	public final int __onEnter(int methodIdx,
+			Object[] params, Interceptable callee) {
+		return onEnter(callee, methodIdx, params);
 	}
 
-	public abstract int onEnter(Object callee, Method method, Object[] params);
+	public abstract int onEnter(Interceptable callee, int methodIdx, Object[] params);
 
 	public abstract void onExit(Object val, int op, int id);
+	
 }

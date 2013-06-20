@@ -1,8 +1,10 @@
 package edu.columbia.cs.psl.invivo.runtime.visitor;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.regex.Matcher;
@@ -26,6 +28,7 @@ import org.objectweb.asm.tree.LocalVariableNode;
 import org.objectweb.asm.tree.MethodNode;
 
 import edu.columbia.cs.psl.invivo.runtime.AbstractInterceptor;
+import edu.columbia.cs.psl.invivo.runtime.Interceptable;
 import edu.columbia.cs.psl.invivo.runtime.InvivoClassFileTransformer;
 import edu.columbia.cs.psl.invivo.runtime.InvivoPreMain;
 import edu.columbia.cs.psl.invivo.runtime.NotInstrumented;
@@ -60,10 +63,20 @@ public class InterceptingClassVisitor extends ClassVisitor implements Opcodes {
 	@Override
 	public void visit(int version, int access, String name, String signature,
 			String superName, String[] interfaces) {
-		super.visit(version, access, name, signature, superName, interfaces);
+		
+		
 		if ((access & Opcodes.ACC_INTERFACE) != 0)
 			isAClass = false;
 		clsDesc.setClassName(name);
+		if(isAClass)
+		{
+			System.out.println(name);
+			String[] tmp = new String[interfaces.length+1];
+			System.arraycopy(interfaces, 0, tmp, 0, interfaces.length);
+			interfaces = tmp;
+			interfaces[interfaces.length-1] = "edu/columbia/cs/psl/invivo/runtime/Interceptable";
+		}
+		super.visit(version, access, name, signature, superName, interfaces);
 	}
 
 	@Override
@@ -138,8 +151,17 @@ public class InterceptingClassVisitor extends ClassVisitor implements Opcodes {
 		}
 		return null;
 	}
+	private ArrayList<MethodNode> mnsInOrder = new ArrayList<>();
+	public int getInterceptorIdx(MethodNode mn)
+	{
+		MethodNode realMN = findRealMethodNode(mn);
+		mnsInOrder.add(realMN);
+		return mnsInOrder.size()-1;
+
+	}
 	public void addTestedMethod(MethodNode mn, ArrayList<LocalVariableNode> lvs) {
-		testedMethods.put(findRealMethodNode(mn),lvs);
+		MethodNode realMN = findRealMethodNode(mn);
+		testedMethods.put(realMN,lvs);
 	}
 
 	@Override
@@ -169,9 +191,13 @@ public class InterceptingClassVisitor extends ClassVisitor implements Opcodes {
 					Type.BOOLEAN_TYPE.getDescriptor(), null, false);
 			fn4.accept(cv);
 		}
+		//begin columbus2 stuff
 		try {
-			for (MethodNode mn : testedMethods.keySet()) {
+			int methodIdx = 0;
+			HashMap<MethodNode, LinkedList<String>> testsPerMN = new HashMap<>();
+			for (MethodNode mn : mnsInOrder) {
 				int nTests = 0;
+				testsPerMN.put(mn, new LinkedList<String>());
 				for(Object o : mn.visibleAnnotations)
 				{
 					AnnotationNode an = (AnnotationNode) o;
@@ -193,12 +219,12 @@ public class InterceptingClassVisitor extends ClassVisitor implements Opcodes {
 									checkMethod = (String) a1.values.get(i+1);
 								i++;
 							}
-							System.out.println("Test: <"+test+"> check: <" + check+"> method:<"+checkMethod+">");
+							testsPerMN.get(mn).add("test: " + test+"; check: " + check+", checkMethod: " + checkMethod);
 							{
 								MethodVisitor mv = this.visitMethod(mn.access, mn.name
-										+ "_test"+nTests, mn.desc, null, null);
+										+ "_test"+methodIdx +"_"+nTests, mn.desc, null, null);
 								GeneratorAdapter gmv = new GeneratorAdapter(mv, mn.access,
-										mn.name + "_test"+nTests, mn.desc);
+										mn.name + "_test"+methodIdx +"_"+nTests, mn.desc);
 
 								gmv.visitCode();
 								Label start = new Label();
@@ -210,7 +236,7 @@ public class InterceptingClassVisitor extends ClassVisitor implements Opcodes {
 								Matcher m = p.matcher(test);
 								test = m.replaceAll("new edu.columbia.cs.psl.metamorphic.inputProcessor.impl.$1().apply((java.lang.Object)");
 								System.out.println(test);
-								eval.emitMetamorphicTest(test,gmv, mn.access, mn.name+ "_test"+nTests, mn.desc,clsDesc,testedMethods.get(mn));
+								eval.emitMetamorphicTest(test,gmv, mn.access, mn.name+ "_test"+methodIdx +"_"+nTests, mn.desc,clsDesc,testedMethods.get(mn));
 								Label end = new Label();
 								gmv.visitLabel(end);
 
@@ -232,9 +258,9 @@ public class InterceptingClassVisitor extends ClassVisitor implements Opcodes {
 								}
 								desc += ")Z";
 								MethodVisitor mv = this.visitMethod(mn.access, mn.name
-										+ "_check"+nTests, desc, null, null);
+										+ "_check"+methodIdx +"_"+nTests, desc, null, null);
 								GeneratorAdapter gmv = new GeneratorAdapter(mv, mn.access,
-										mn.name + "_check"+nTests, desc);
+										mn.name + "_check"+methodIdx +"_"+nTests, desc);
 
 								gmv.visitCode();
 								Label start = new Label();
@@ -256,7 +282,7 @@ public class InterceptingClassVisitor extends ClassVisitor implements Opcodes {
 									if(!ln.name.equals("this"))
 									checkArgs.add(new LocalVariableNode(ln.name, ln.desc, ln.signature, ln.start, ln.end, ln.index+2));
 								}
-								eval.emitMetamorphicTest(check,gmv, mn.access, mn.name+ "_check"+nTests, desc,clsDesc,checkArgs);
+								eval.emitMetamorphicTest(check,gmv, mn.access, mn.name+ "_check"+methodIdx +"_"+nTests, desc,clsDesc,checkArgs);
 								Label end = new Label();
 								gmv.visitLabel(end);
 								gmv.returnValue();
@@ -272,11 +298,35 @@ public class InterceptingClassVisitor extends ClassVisitor implements Opcodes {
 					}
 
 				}
+			}
+			{
+				MethodVisitor mv = super.visitMethod(Opcodes.ACC_PUBLIC, "getNumberOfTests", "(I)I", null, null);
+				GeneratorAdapter gmv = new GeneratorAdapter(mv, Opcodes.ACC_PUBLIC, "getNumberOfTests", "(I)I");
 				
+				gmv.visitCode();
+				gmv.loadArg(0);
+				Label[] labels= new Label[mnsInOrder.size()];
+				for(int i = 0; i < labels.length;i++)
+				{
+					labels[i] = new Label();
+				}
+ 				Label end = new Label();
+				for(int i = 0; i < labels.length; i++)
+				{
+					gmv.visitLabel(labels[i]);
+					gmv.push(testsPerMN.get(mnsInOrder.get(i)).size());
+					gmv.returnValue();
+				}
+				gmv.visitLabel(end);
+				gmv.push(0);
+				gmv.returnValue();
+				gmv.visitMaxs(0, 0);
+				gmv.visitEnd();
 			}
 		} catch (Exception ex) {
 			ex.printStackTrace();
 		}
+		//end columbus2 stuff
 	}
 	private static String getBoxedType(Type type) {
         if(type.getDescriptor().equals("I"))
