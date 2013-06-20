@@ -9,77 +9,44 @@ import java.security.ProtectionDomain;
 
 import org.apache.log4j.Logger;
 import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
-import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.AnnotationNode;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 
-import edu.columbia.cs.psl.invivo.runtime.visitor.BuddyClassVisitor;
 import edu.columbia.cs.psl.invivo.runtime.visitor.InterceptingClassVisitor;
 
 @NotInstrumented
 public class InvivoClassFileTransformer implements ClassFileTransformer {
-	private static Logger	logger	= Logger.getLogger(InvivoClassFileTransformer.class);
+	private static Logger logger = Logger.getLogger(InvivoClassFileTransformer.class);
 	public static ClassNode currentClassNode;
-	
-	public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain,
-			byte[] classfileBuffer) throws IllegalClassFormatException {
+
+	public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) throws IllegalClassFormatException {
 		String name = className.replace("/", ".");
 		if (!name.startsWith("java")) {
-			
-			System.out.println(className);
 			boolean found = false;
 			currentClassNode = new ClassNode();
 			ClassReader cncr = new ClassReader(classfileBuffer);
 			cncr.accept(currentClassNode, ClassReader.SKIP_CODE);
-			for(Object o : currentClassNode.methods)
-			{
+			for (Object o : currentClassNode.methods) {
 				MethodNode mn = (MethodNode) o;
-				if( mn.visibleAnnotations != null)
-				for(Object oa : mn.visibleAnnotations)
-				{
-					AnnotationNode an = (AnnotationNode) oa;
-					if(an.desc.equals(InvivoPreMain.config.getAnnotationDescriptor()))
-						found = true;
-				}
+				if (mn.visibleAnnotations != null)
+					for (Object oa : mn.visibleAnnotations) {
+						AnnotationNode an = (AnnotationNode) oa;
+						if (an.desc.equals(InvivoPreMain.config.getAnnotationDescriptor()))
+							found = true;
+					}
 			}
-			if(!found)
-			{
+			if (!found) {
 				return classfileBuffer;
-				
 			}
-			ClassVisitor preVisitor = InvivoPreMain.config.getPreCV(Opcodes.ASM4, null);
-			if (preVisitor != null) {
-				try {
-					ClassReader initialVisitor = new ClassReader(classfileBuffer);
-					initialVisitor.accept(preVisitor, 0);
-				} catch (Exception ex) {
-					logger.error("Error running initial visitor for class " + name, ex);
-				}
-			}
-
-			TestRunnerGenerator<ClassVisitor> generator = InvivoPreMain.config.getTestRunnerGenerator(preVisitor);
-			
 			ClassReader cr = new ClassReader(classfileBuffer);
 			ClassWriter cw = new ClassWriter(cr, ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES);
 			try {
 				InterceptingClassVisitor cv;
-				if (generator != null) {
-					cv = new InterceptingClassVisitor(cw, generator.getClsDesc());
-				} else
-					cv = new InterceptingClassVisitor(cw);
+				cv = new InterceptingClassVisitor(cw);
 				cv.setClassName(name);
-
-				ClassVisitor secondaryVistor = InvivoPreMain.config.getAdditionalCV(Opcodes.ASM4, cv);
-				if (secondaryVistor != null) {
-					if (secondaryVistor instanceof BuddyClassVisitor<?>)
-						((BuddyClassVisitor<?>) secondaryVistor).setBuddy(preVisitor);
-					cr.accept(secondaryVistor, ClassReader.EXPAND_FRAMES);
-				} else {
-					cr.accept(cv, ClassReader.EXPAND_FRAMES);
-				}
+				cr.accept(cv, ClassReader.EXPAND_FRAMES);
 				File f = new File("debug/");
 				if (!f.exists())
 					f.mkdir();

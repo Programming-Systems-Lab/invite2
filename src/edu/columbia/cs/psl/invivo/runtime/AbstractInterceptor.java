@@ -1,7 +1,5 @@
 package edu.columbia.cs.psl.invivo.runtime;
 
-
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -29,47 +27,39 @@ public abstract class AbstractInterceptor {
 
 	protected void setAsChild(Object obj, int childId) {
 		try {
-			obj.getClass().getField(InvivoPreMain.config.getChildField())
-					.setInt(obj, childId);
+			obj.getClass().getField(InvivoPreMain.config.getChildField()).setInt(obj, childId);
 			AbstractInterceptor.childId.set(childId);
 		} catch (Exception e) {
-			throw new IllegalArgumentException(
-					"The object requested was not intercepted and annotated (don't use this for a static call!)",
-					e);
+			throw new IllegalArgumentException("The object requested was not intercepted and annotated (don't use this for a static call!)", e);
 		}
 	}
-	public static Interceptable getRootCallee()
-	{
+
+	public static Interceptable getRootCallee() {
 		return createdCallees.get(getThreadChildId());
 	}
+
 	private static HashMap<Integer, Interceptable> createdCallees = new HashMap<Integer, Interceptable>();
-	
+
 	protected boolean isChild(Object callee) {
 		if (callee == null || callee.getClass().equals(Class.class))
 			return false;
 		try {
-			return callee.getClass()
-					.getField(InvivoPreMain.config.getChildField())
-					.getInt(callee) > 0;
+			return callee.getClass().getField(InvivoPreMain.config.getChildField()).getInt(callee) > 0;
 		} catch (Exception e) {
-			throw new IllegalArgumentException(
-					"The object requested was not intercepted and annotated  (don't use this for a static call!)",
-					e);
+			throw new IllegalArgumentException("The object requested was not intercepted and annotated  (don't use this for a static call!)", e);
 		}
 	}
-	
-	protected Thread createRunnerThread(final MethodInvocation inv, boolean isChild)
-	{
-			final int id = (isChild ? nextId.getAndIncrement() : 0);
-		return new Thread(new ThreadGroup(InvivoPreMain.config.getThreadPrefix()+id),new Runnable() {		
-			
+
+	protected Thread createRunnerThread(final MethodInvocation inv, boolean isChild) {
+		final int id = (isChild ? nextId.getAndIncrement() : 0);
+		return new Thread(new ThreadGroup(InvivoPreMain.config.getThreadPrefix() + id), new Runnable() {
+
 			public void run() {
 				try {
 					createdCallees.put(id, inv.getCallee());
-					if(id > 0)
-					setAsChild(inv.getCallee(),id);
-					
-					inv.setReturnValue(inv.getCallee().runTest(inv.getMethodIdx(),inv.idx,inv.getCallee(), inv.getParams()));
+					if (id > 0)
+						setAsChild(inv.getCallee(), id);
+					inv.setReturnValue(inv.getCallee().runTest(inv.getMethodIdx(), inv.idx, inv.getCallee(), inv.getParams()));
 					cleanupChild(id);
 				} catch (SecurityException e) {
 					e.printStackTrace();
@@ -79,13 +69,12 @@ public abstract class AbstractInterceptor {
 					e.printStackTrace();
 				}
 			}
-		},InvivoPreMain.config.getThreadPrefix()+id);
-	}
-	protected Thread createChildThread(MethodInvocation inv)
-	{
-		return createRunnerThread(inv, true);
+		}, InvivoPreMain.config.getThreadPrefix() + id);
 	}
 
+	protected Thread createChildThread(MethodInvocation inv) {
+		return createRunnerThread(inv, true);
+	}
 
 	/**
 	 * Gets the child ID for the thread calling If this thread is directly a
@@ -107,23 +96,17 @@ public abstract class AbstractInterceptor {
 		if (g == null || g.getName().equals("main"))
 			return 0;
 		if (g.getName().startsWith(InvivoPreMain.config.getThreadPrefix()))
-			return Integer.valueOf(g.getName().substring(
-					InvivoPreMain.config.getThreadPrefix().length()));
+			return Integer.valueOf(g.getName().substring(InvivoPreMain.config.getThreadPrefix().length()));
 		return getThreadChildId(g.getParent());
 	}
 
 	protected int getChildId(Object callee) {
 		if (callee == null || callee.getClass().equals(Class.class))
-			throw new IllegalArgumentException(
-					"The object requested was not intercepted and annotated (don't use this for a static call!)");
+			throw new IllegalArgumentException("The object requested was not intercepted and annotated (don't use this for a static call!)");
 		try {
-			return callee.getClass()
-					.getField(InvivoPreMain.config.getChildField())
-					.getInt(callee);
+			return callee.getClass().getField(InvivoPreMain.config.getChildField()).getInt(callee);
 		} catch (Exception e) {
-			throw new IllegalArgumentException(
-					"The object requested was not intercepted and annotated (don't use this for a static call!)",
-					e);
+			throw new IllegalArgumentException("The object requested was not intercepted and annotated (don't use this for a static call!)", e);
 		}
 	}
 
@@ -133,14 +116,11 @@ public abstract class AbstractInterceptor {
 
 	}
 
-	public static Method getMethod(String methodName, Class<?>[] params,
-			Class<?> clazz) throws NoSuchMethodException {
+	public static Method getMethod(String methodName, Class<?>[] params, Class<?> clazz) throws NoSuchMethodException {
 		return getMethod(methodName, params, clazz, clazz);
 	}
 
-	public static Method getMethod(String methodName, Class<?>[] params,
-			Class<?> clazz, Class<?> originalClazz)
-			throws NoSuchMethodException {
+	public static Method getMethod(String methodName, Class<?>[] params, Class<?> clazz, Class<?> originalClazz) throws NoSuchMethodException {
 		try {
 			for (Method m : clazz.getDeclaredMethods()) {
 				boolean ok = true;
@@ -163,10 +143,8 @@ public abstract class AbstractInterceptor {
 			e.printStackTrace();
 		}
 		if (clazz.getSuperclass() != null)
-			return getMethod(methodName, params, clazz.getSuperclass(),
-					originalClazz);
-		throw new NoSuchMethodException(originalClazz.getCanonicalName() + "."
-				+ methodName + "(" + implode(params) + ")");
+			return getMethod(methodName, params, clazz.getSuperclass(), originalClazz);
+		throw new NoSuchMethodException(originalClazz.getCanonicalName() + "." + methodName + "(" + implode(params) + ")");
 	}
 
 	private static String implode(Object[] array) {
@@ -247,13 +225,12 @@ public abstract class AbstractInterceptor {
 		onExit(val, op, id);
 	}
 
-	public final int __onEnter(int methodIdx,
-			Object[] params, Interceptable callee) {
+	public final int __onEnter(int methodIdx, Object[] params, Interceptable callee) {
 		return onEnter(callee, methodIdx, params);
 	}
 
 	public abstract int onEnter(Interceptable callee, int methodIdx, Object[] params);
 
 	public abstract void onExit(Object val, int op, int id);
-	
+
 }

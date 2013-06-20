@@ -26,7 +26,6 @@ public class StaticWrapper {
 	public static Object getValue(String owner, String name, Object curValue,
 			boolean useLazyClone) throws InvalidAttributesException,
 			SecurityException, NoSuchFieldException, ClassNotFoundException {
-		System.out.println("Calling get value");
 		int childId = AbstractInterceptor.getThreadChildId();
 		Object retValue = null;
 

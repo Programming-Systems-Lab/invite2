@@ -18,6 +18,8 @@ public class MethodInvocation implements Serializable
 	
 	public Interceptable callee;
 		
+	public String methodName;
+	
 	public Object[] params;
 	
 	public Object returnValue;
@@ -34,6 +36,8 @@ public class MethodInvocation implements Serializable
 
 	protected int methodIdx;
 
+	public Method method;
+
 	public int getMethodIdx() {
 		return methodIdx;
 	}
@@ -47,7 +51,7 @@ public class MethodInvocation implements Serializable
 		if(getParams() != null)
 			for(Object v : getParams()) {
 				if(v != null)
-					paramStr.append(v.toString());
+					paramStr.append(v.toString()+",");
 			}
 			
 		StringBuilder childStr = new StringBuilder();
@@ -56,7 +60,7 @@ public class MethodInvocation implements Serializable
 				childStr.append(i.toString() + ",");
 		}
 		
-		return "[Invocation on method  with params " + paramStr.toString() + " returning " + getReturnValue() +" on object " + callee +".  Children: ["+childStr.toString()+"] ]";
+		return "[Invocation on method  with params (" + paramStr.substring(0, paramStr.length()-1)+ ") returning " + getReturnValue() +" on object " + callee +".  Children: ["+childStr.toString()+"] ]";
 	}
 
 
